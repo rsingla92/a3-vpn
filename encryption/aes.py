@@ -252,18 +252,14 @@ def add_round_key(dat, key):
 def print_hex(dat):
     hex_dat = []
     for row in range(4):
-        hex_dat_inner = []
-        for col in range(4):
-            hex_dat_inner.append(hex(dat[row][col]))
+        hex_dat_inner = [hex(dat[row][col]) for col in range(4)]
         hex_dat.append(hex_dat_inner)
     print(hex_dat)
 
 def create_state(dat):
     state = []
     for row in range(4):
-        inner = []
-        for col in range(4):
-            inner.append(dat[row + 4*col])
+        inner = [dat[row + 4*col] for col in range(4)]
         state.append(inner)
     return state
 
