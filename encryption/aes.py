@@ -187,7 +187,7 @@ def bytesub_transform(data_block, inv=False):
 
 def shift_row(data_block, inv=False):
     transformed = copy_list_of_lists(data_block)
-    for i in xrange(4):
+    for i in range(4):
         shifter = i
         if not inv:
             shifter = -i
@@ -210,10 +210,10 @@ def mix_column(column, inv=False):
 
 def mix_columns(data_block, inv=False):
     new_block = copy_list_of_lists(data_block)
-    for r in xrange(4):
+    for r in range(4):
         col = [data_block[0][r], data_block[1][r], data_block[2][r], data_block[3][r]]
         newcol = mix_column(col, inv)
-        for c in xrange(4):
+        for c in range(4):
             new_block[c][r] = newcol[c]
     return new_block
 
@@ -224,7 +224,7 @@ def form_extended_key(original_key):
     n, b = 16, 176
     ekey = list(original_key)
     i = 1
-    for j in xrange(10):
+    for j in range(10):
         t = ekey[-4:]
         t = rot_list(t, -1)
         t = map(lambda x: int(bytesub(x), 16), t)
@@ -232,7 +232,7 @@ def form_extended_key(original_key):
         i += 1
         for byte1, byte2 in zip(t, ekey[-16:-12]):
              ekey.append(byte1 ^ byte2)
-        for c in xrange(3):
+        for c in range(3):
             t = ekey[-4:]
             for byte1, byte2 in zip(t, ekey[-16:-12]):
                 ekey.append(byte1 ^ byte2)
@@ -244,36 +244,33 @@ def add_round_key(dat, key):
     dat: A 4x4 list of lists
     """
     new_block = copy_list_of_lists(dat)
-  #  print "Dat: "
-    #print_hex(dat)
-   # print "Key: ", map(hex, key)
-    for row in xrange(4):
-        for col in xrange(4):
+    for row in range(4):
+        for col in range(4):
             new_block[row][col] = dat[row][col] ^ key[row + col*4]
     return new_block
 
 def print_hex(dat):
     hex_dat = []
-    for row in xrange(4):
+    for row in range(4):
         hex_dat_inner = []
-        for col in xrange(4):
+        for col in range(4):
             hex_dat_inner.append(hex(dat[row][col]))
         hex_dat.append(hex_dat_inner)
-    print hex_dat
+    print(hex_dat)
 
 def create_state(dat):
     state = []
-    for row in xrange(4):
+    for row in range(4):
         inner = []
-        for col in xrange(4):
+        for col in range(4):
             inner.append(dat[row + 4*col])
         state.append(inner)
     return state
 
 def create_stream(state):
     stream = [None] * 16
-    for row in xrange(4):
-        for col in xrange(4):
+    for row in range(4):
+        for col in range(4):
             stream[row + 4*col] = state[row][col]
     return stream
 
@@ -281,7 +278,7 @@ def aes_singleblock(dat, key):
     ekey = form_extended_key(key)
     dat = create_state(dat)
     dat = add_round_key(dat, ekey[:16])
-    for i in xrange(10):
+    for i in range(10):
         dat = bytesub_transform(dat)
         dat = shift_row(dat)
         if i < 9:
@@ -293,6 +290,6 @@ def aes_singleblock_inverse(dat, key):
     ekey = form_extended_key(key)
     dat = create_state(dat)
     dat = bytesub_transform(shift_row(add_round_key(dat, ekey[-16:]), True), True)
-    for i in xrange(8, -1, -1):
+    for i in range(8, -1, -1):
         dat = bytesub_transform(shift_row(mix_columns(add_round_key(dat, ekey[(i+1)*16:(i+2)*16]), True), True), True)
     return create_stream(add_round_key(dat, ekey[:16]))
