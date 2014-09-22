@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from tkinter import *
 import logging
 
-# Meant to be a TkInter text widget that sets up logging
 class WidgetLogger(logging.Handler):
+    """TkInter text widget to setup logging"""
     def __init__(self, widget):
         logging.Handler.__init__(self)
         self.setLevel(logging.INFO)
@@ -19,17 +19,16 @@ class WidgetLogger(logging.Handler):
         self.widget.see(END)
         print(self.format(record))
 
-# Main class that creates the GUI and provides button functionality
 class VPNApp(Frame):
+    """Main class. Creates GUI and provides button functionality"""
 
-    # Constructor
     def __init__(self, parent, **kwargs):
         Frame.__init__(self, parent)
         self.parent = parent
         self.parent.title("VPN Window")
         self.pack(fill=BOTH, expand=1)
-    
-		# Use the GridManager
+
+        # Use the GridManager
         self.setupGrid()
         self.setupButtons()
         self.setupEntries()
@@ -52,18 +51,18 @@ class VPNApp(Frame):
 
         handler = WidgetLogger(textArea)
         logger.addHandler(handler)
-        
+
     def setupButtons(self):
-		# TODO: Add the command parameter to all button constructor calls. 
+	# TODO: Add the command parameter to all button constructor calls.
         modeButton = Button(self, text="Mode: Client (press to switch)", command = self.toggleMode )
         modeButton.grid(row=6, column=2)
 
         connectButton = Button(self, text="Connect")
         connectButton.grid(row=7, column=2)
-        
+
         sendButton = Button(self, text="Send")
         sendButton.grid(row=8, column=2)
-        
+
         stopButton = Button(self, text="Stop")
         stopButton.grid(row=10, column=2)
 
@@ -75,9 +74,9 @@ class VPNApp(Frame):
 
         helpButton = Button(self, text="Help")
         helpButton.grid(row=11, column=0)
-   
+
     def toggleMode(self):
-		# TODO: Add some logging here
+        # TODO: Add some logging here
         if modeButton.config('text')[-1] == "Mode: Client (press to switch)":
             isClient = false
         else:
@@ -109,7 +108,7 @@ class VPNApp(Frame):
         receivedLabel.grid(row=10, column=0)
         receivedEntry = Entry(self)
         receivedEntry.grid(row=10, column=1)
-        
+
 def main():
     # Create a root window that will hold everything for us
     root = Tk()
