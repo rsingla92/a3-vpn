@@ -1,3 +1,6 @@
+import random
+import math
+
 bytesub_table = [['0x63', '0x7C', '0x77', '0x7B', '0xF2', '0x6B', '0x6F', '0xC5', '0x30', '0x01', '0x67', '0x2B', '0xFE', '0xD7', '0xAB', '0x76'],
                  ['0xCA', '0x82', '0xC9', '0x7D', '0xFA', '0x59', '0x47', '0xF0', '0xAD', '0xD4', '0xA2', '0xAF', '0x9C', '0xA4', '0x72', '0xC0'],
                  ['0xB7', '0xFD', '0x93', '0x26', '0x36', '0x3F', '0xF7', '0xCC', '0x34', '0xA5', '0xE5', '0xF1', '0x71', '0xD8', '0x31', '0x15'],
@@ -221,7 +224,6 @@ def form_extended_key(original_key):
     """
     original_key: A list of 16 bytes (128 bit key)
     """
-    n, b = 16, 176
     ekey = list(original_key)
     i = 1
     for j in range(10):
@@ -249,15 +251,9 @@ def add_round_key(dat, key):
             new_block[row][col] = dat[row][col] ^ key[row + col*4]
     return new_block
 
-def print_hex(dat):
-    hex_dat = []
-    for row in range(4):
-        hex_dat_inner = [hex(dat[row][col]) for col in range(4)]
-        hex_dat.append(hex_dat_inner)
-    print(hex_dat)
-
 def create_state(dat):
     state = []
+    print dat
     for row in range(4):
         inner = [dat[row + 4*col] for col in range(4)]
         state.append(inner)
@@ -270,8 +266,7 @@ def create_stream(state):
             stream[row + 4*col] = state[row][col]
     return stream
 
-def aes_singleblock(dat, key):
-    ekey = form_extended_key(key)
+def aes_singleblock(dat, ekey):
     dat = create_state(dat)
     dat = add_round_key(dat, ekey[:16])
     for i in range(10):
@@ -282,10 +277,34 @@ def aes_singleblock(dat, key):
         dat = add_round_key(dat, ekey[(i+1)*16:(i+2)*16])
     return create_stream(dat)
 
-def aes_singleblock_inverse(dat, key):
-    ekey = form_extended_key(key)
+def aes_singleblock_inverse(dat, ekey):
     dat = create_state(dat)
     dat = bytesub_transform(shift_row(add_round_key(dat, ekey[-16:]), True), True)
     for i in range(8, -1, -1):
         dat = bytesub_transform(shift_row(mix_columns(add_round_key(dat, ekey[(i+1)*16:(i+2)*16]), True), True), True)
     return create_stream(add_round_key(dat, ekey[:16]))
+
+def aes(dat, key):
+    key = [ord(x) if isinstance(x, str) else x for x in key]
+    dat = [ord(x) if isinstance(x, str) else x for x in dat]
+    ekey = form_extended_key(key)
+    padding = int(math.ceil(len(dat) / 16.0)) * 16 - len(dat) 
+    dat = dat + [0x80]*padding
+    # Generate the initialization vector
+    ciphertext = []
+    for i in range(16):
+        ciphertext.append(random.randint(0, 255))
+    for i in range(0, len(dat), 16):
+        block = [x ^ y for (x,y) in zip(dat[i:i+16], ciphertext[i:i+16])]
+        ciphertext += aes_singleblock(block, ekey)
+    return ciphertext
+
+def aes_inv(dat, key):
+    key = [ord(x) if isinstance(x, str) else x for x in key]
+    dat = [ord(x) if isinstance(x, str) else x for x in dat]
+    ekey = form_extended_key(key)
+    plaintext = []
+    for i in range(16, len(dat), 16):
+        block = aes_singleblock_inverse(dat[i:i+16], ekey)
+        plaintext += [x ^ y for (x,y) in zip(block, dat[i-16:i])]
+    return plaintext
