@@ -1,3 +1,11 @@
+"""This module contains an implementation of 128-bit key AES in CBC mode.
+
+Functions:
+
+aes_encrypt -- Encrypts supplied data using AES with a given key.
+aes_decrypt -- Decrypts supplied ciphertext using AES with a given key.
+"""
+
 import random
 import math
 
@@ -155,6 +163,14 @@ rcon = [0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 
         0x61, 0xc2, 0x9f, 0x25, 0x4a, 0x94, 0x33, 0x66, 0xcc, 0x83, 0x1d, 0x3a, 0x74, 0xe8, 0xcb, 0x8d]
 
 def bytesub(hex_val, inv=False):
+    """Performs the bytesub operation for a single byte, replacing it using a table lookup.
+
+    Arguments:
+    hex_val -- A single byte (as an integer or hex string) that will be replaced.
+    inv -- If this is False, this is a bytesub operation. Otherwise, it is an inverse bytesub.
+
+    Returns the byte that replaces the provided hex_value, as a hex string.
+    """
     hex_str = hex_val
     if isinstance(hex_str, int):
         hex_str = hex(hex_val)
@@ -177,8 +193,14 @@ def rot_list(ls, rot):
     return ls[-rot:] + ls[:-rot]
 
 def bytesub_transform(data_block, inv=False):
-    """
-    data_block: 4x4 block of bytes (as integers)
+    """Performs the bytesub operation of the AES algorithm, replacing every byte in data_block.
+
+    Arguments:
+    data_block -- A 4x4 block of bytes (as integers)
+    inv -- If this is False, this will perform the bytesub operation. Otherwise, it is an inverse bytesub.
+
+    Returns a block of data with all of the bytes replaced according to the bytesub table. Each byte is an
+    integer.
     """
     transformed = copy_list_of_lists(data_block)
     for row, dat in enumerate(data_block):
@@ -189,6 +211,15 @@ def bytesub_transform(data_block, inv=False):
     return transformed
 
 def shift_row(data_block, inv=False):
+    """Performs the shift rows operation of the AES algorithm.
+
+    Arguments:
+    data_block -- A 4x4 block of bytes (as integers)
+    inv -- If this is True, this performs the inverse shift rows operation.
+
+    Returns a 4x4 block of bytes (as integers) with each row i shifted by i to the left (or to
+    the right, in the inverse operation).
+    """
     transformed = copy_list_of_lists(data_block)
     for i in range(4):
         shifter = i
@@ -198,6 +229,14 @@ def shift_row(data_block, inv=False):
     return transformed
 
 def mix_column(column, inv=False):
+    """Performs the mix columns operation of AES on a single column.
+
+    Arguments:
+    column -- A column of integers.
+    inv -- If this is True, this performs the inverse mix columns operation.
+
+    Returns a list of 4 bytes (as integers), replaced based on the AES mix columns step.
+    """
     b0, b1, b2, b3 = None, None, None, None
     if not inv:
         b0 = mixcolumn_table2[column[0]] ^ mixcolumn_table3[column[1]] ^ column[2] ^ column[3]
@@ -212,6 +251,15 @@ def mix_column(column, inv=False):
     return [b0, b1, b2, b3]
 
 def mix_columns(data_block, inv=False):
+    """Performs the mix columns operation of AES.
+
+    Arguments:
+    data_block -- A 4x4 block of bytes (as integers)
+    inv -- If this is True, performs the inverse mix columns operation.
+
+    Returns a 4x4 block of bytes (as integers) with each column replaced according to the mix columns
+    algorithm.
+    """
     new_block = copy_list_of_lists(data_block)
     for r in range(4):
         col = [data_block[0][r], data_block[1][r], data_block[2][r], data_block[3][r]]
@@ -221,15 +269,20 @@ def mix_columns(data_block, inv=False):
     return new_block
 
 def form_extended_key(original_key):
-    """
-    original_key: A list of 16 bytes (128 bit key)
+    """Performs the key schedule algorithm of AES using original_key as the seed.
+
+    Arguments:
+    original_key -- A list of 16 bytes (128-bit key)
+
+    Returns a list of bytes which is the extended key.
     """
     ekey = list(original_key)
+    print("Key: ", ekey)
     i = 1
     for j in range(10):
         t = ekey[-4:]
         t = rot_list(t, -1)
-        t = map(lambda x: int(bytesub(x), 16), t)
+        t = list(map(lambda x: int(bytesub(x), 16), t))
         t[0] = t[0] ^ rcon[i]
         i += 1
         for byte1, byte2 in zip(t, ekey[-16:-12]):
@@ -241,9 +294,13 @@ def form_extended_key(original_key):
     return ekey
 
 def add_round_key(dat, key):
-    """
-    key: A 16 byte block of the extended key (16 bytes, single-level list)
-    dat: A 4x4 list of lists
+    """Performs the add round key operation of AES using the provided key and data.
+
+    Arguments:
+    dat -- A 4x4 list of lists of bytes (as integers), rows by columns.
+    key -- A 16 byte block of the extended key (16 bytes, single-level list)
+
+    Returns a new block of data, which is the result of XORing the data with the key.
     """
     new_block = copy_list_of_lists(dat)
     for row in range(4):
@@ -252,14 +309,27 @@ def add_round_key(dat, key):
     return new_block
 
 def create_state(dat):
+    """Creates the 'block form' of the given data, as a list of lists.
+
+    Arguments:
+    dat -- A 16-byte list of data (as integers).
+
+    Returns the data as a 4x4 block that will be used by the AES algorithm.
+    """
     state = []
-    print dat
     for row in range(4):
         inner = [dat[row + 4*col] for col in range(4)]
         state.append(inner)
     return state
 
 def create_stream(state):
+    """Create a flat list of 16 bytes based on a 4x4 block of bytes.
+
+    Arguments:
+    state -- A list of lists of bytes (as integers); a 4x4 block of data.
+
+    Returns a list of the data in stream form.
+    """
     stream = [None] * 16
     for row in range(4):
         for col in range(4):
@@ -267,6 +337,14 @@ def create_stream(state):
     return stream
 
 def aes_singleblock(dat, ekey):
+    """Performs the AES encryption algorithm for a single 4x4 byte block of data, with a given extended key.
+
+    Arguments:
+    dat -- A list of lists of bytes (as integers), 4x4 block of data.
+    ekey -- The extended key created by a key schedule algorithm, 176 bytes of data as a list of integers.
+
+    Returns the ciphertext produced for the given block of data and extended key.
+    """
     dat = create_state(dat)
     dat = add_round_key(dat, ekey[:16])
     for i in range(10):
@@ -278,17 +356,36 @@ def aes_singleblock(dat, ekey):
     return create_stream(dat)
 
 def aes_singleblock_inverse(dat, ekey):
+    """Performs the AES decryption algorithm for a 4x4 byte block of ciphertext, with a given extended key.
+
+    Arguments:
+    dat -- A list of lists of bytes (as integers), 4x4 block of data.
+    ekey -- The extended key created by a key schedule algorithm, 176 bytes of data as a list of integers.
+
+    Returns the plaintext from the given ciphertext and key.
+    """
     dat = create_state(dat)
     dat = bytesub_transform(shift_row(add_round_key(dat, ekey[-16:]), True), True)
     for i in range(8, -1, -1):
         dat = bytesub_transform(shift_row(mix_columns(add_round_key(dat, ekey[(i+1)*16:(i+2)*16]), True), True), True)
     return create_stream(add_round_key(dat, ekey[:16]))
 
-def aes(dat, key):
+def aes_encrypt(dat, key):
+    """Performs the AES encryption algorithm for the given data and key. Uses CBC for data that is longer than
+    128-bits. If the last block of data is under 128 bits, the data will be padded with 0x80.
+
+    Arguments:
+    dat -- Data as a list of bytes or as a string.
+    key -- Key as a list of bytes or as a string. Must contain 16 elements (128 bits).
+
+    Returns the ciphertext for the given data and key.
+    """
+    if len(key) != 16:
+        raise TypeError('The key must be 16 bytes')
     key = [ord(x) if isinstance(x, str) else x for x in key]
     dat = [ord(x) if isinstance(x, str) else x for x in dat]
     ekey = form_extended_key(key)
-    padding = int(math.ceil(len(dat) / 16.0)) * 16 - len(dat) 
+    padding = int(math.ceil(len(dat) / 16.0)) * 16 - len(dat)
     dat = dat + [0x80]*padding
     # Generate the initialization vector
     ciphertext = []
@@ -299,7 +396,17 @@ def aes(dat, key):
         ciphertext += aes_singleblock(block, ekey)
     return ciphertext
 
-def aes_inv(dat, key):
+def aes_decrypt(dat, key):
+    """Performs the AES decryption algorithm for the given ciphertext and key, using CBC mode.
+
+    Arguments:
+    dat -- Ciphertext as a list of bytes or as a string.
+    key -- Key as a list of bytes or as a string. Must contain 16 elements (128 bits).
+
+    Returns the plaintext for the given ciphertext and key.
+    """
+    if len(key) != 16:
+        raise TypeError('The key must be 16 bytes')
     key = [ord(x) if isinstance(x, str) else x for x in key]
     dat = [ord(x) if isinstance(x, str) else x for x in dat]
     ekey = form_extended_key(key)
