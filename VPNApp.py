@@ -53,7 +53,7 @@ class VPNApp(Frame):
         logger.addHandler(handler)
 
     def setupButtons(self):
-	# TODO: Add the command parameter to all button constructor calls.
+        # TODO: Add the command parameter to all button constructor calls.
         modeButton = Button(self, text="Mode: Client (press to switch)", command = self.toggleMode )
         modeButton.grid(row=6, column=2)
 
