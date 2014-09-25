@@ -18,12 +18,25 @@ PORT = 50002
 RECV_LENGTH = 1024
 
 def setup_server():
+    """
+    Starts the VPN server
+    Returns:
+        queue which will be populated with incoming messages
+    """
     return setup(HOST, PORT, True)
 
-def setup_client():
-    return setup(HOST, PORT)
+def setup_client(server_host):
+    """
+    Starts the VPN client
+    Returns:
+        queue which messages will be sent from
+    """
+    return setup(host=server_host, port=PORT)
 
 def _setup(host, port, server=True):
+    """
+    Sets up and starts Client/Server processes
+    """
     print("Host ip addr:")
     print(socket.gethostbyname(socket.gethostname()), "\n")
 
@@ -79,4 +92,5 @@ class Client(threading.Thread):
             if not send_queue.empty():
                 conn, addr = self.sock.accept()
                 message = send_queue.get()
-                conn.send(message.encode())
+                encoded = message.encode()
+                conn.send(encoded)
