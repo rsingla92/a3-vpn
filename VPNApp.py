@@ -113,7 +113,7 @@ class VPNApp(Frame):
         receivedEntry.grid(row=10, column=1)
 
 def main():    
-    dh.run_test()
+   #dh.run_test()
     
     
     

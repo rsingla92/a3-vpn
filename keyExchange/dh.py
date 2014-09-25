@@ -79,7 +79,7 @@ def run_test():
     data1 = gen_public_transport(True, long_term_key)
     data2 = gen_public_transport(True, long_term_key)
     
-    s1 = gen_session_key(data1[0], data2[1], True, long_term_key)
+    #s1 = gen_session_key(data1[0], data2[1], True, long_term_key)
     '''s2 = gen_session_key(data2[0], data1[1], True, long_term_key)
     
     if s1 == s2:
