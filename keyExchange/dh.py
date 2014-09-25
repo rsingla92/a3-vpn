@@ -13,8 +13,6 @@ debug = False
 
 import random
 import aes
-import struct
-from bitstring import BitArray
 
 PUB_TRANSPORT_IDX = 0
 LOC_EXPONENT_IDX = 1
@@ -151,6 +149,7 @@ def run_test():
     s2 = gen_session_key(data2[PUB_TRANSPORT_IDX], data1[LOC_EXPONENT_IDX], True, long_term_key)
     
     # for PFS, must forget the values used to generate session_keys
+    # AKA "ephemeral Diffie-Hellman key exchange"
     data1 = (0, 0)
     data2 = (0, 0)
     
@@ -167,7 +166,7 @@ def run_test():
     
     
   
-run_test() 
+run_test()
 
 
 
