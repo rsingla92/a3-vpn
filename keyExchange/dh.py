@@ -9,8 +9,12 @@ Functions:
 debug = True
 
 import random
-import math
 import aes
+import struct
+from bitstring import BitArray
+
+PUB_TRANSPORT_IDX = 0
+LOC_EXPONENT_IDX = 1
 
 #public large prime number
 #1536 bit prime number - http://www.ietf.org/rfc/rfc3526.txt
@@ -34,7 +38,7 @@ def gen_public_transport(encrypt_protocol=False, long_term_key=0):
     if encrypt_protocol == False:
         return (pub_transport, local_exponent)
     else:
-        ciphertext = aes.aes_encrypt(str(pub_transport), long_term_key)
+        ciphertext = aes.aes_encrypt(intToByteArray(pub_transport), long_term_key)
         if debug:
             print("ciphertext: " + str(ciphertext))
         return (str(ciphertext), local_exponent)
@@ -42,7 +46,8 @@ def gen_public_transport(encrypt_protocol=False, long_term_key=0):
 def gen_session_key(inc_pub_transport, local_exponent, encrypt_protocol=False, long_term_key=0):
     
     if encrypt_protocol == True:
-        inc_pub_transport = aes.aes_decrypt(inc_pub_transport, long_term_key) #JHH This needs attention, as it comes back as a list of bytes
+        inc_pub_transport_bytes = aes.aes_decrypt(inc_pub_transport, long_term_key) #JHH This needs attention, as it comes back as a list of bytes
+        inc_pub_transport = byteArrayToInt(inc_pub_transport_bytes)
     
     session_key = pow(inc_pub_transport, local_exponent, prime)
     
@@ -61,7 +66,7 @@ def finish_dh_key_generation(pfs, local_exponent):
 def run_test():
     #Jorden Testing:
     
-    # Test basic functionality.
+    '''# Test basic functionality.  -- PASSES
     data1 = gen_public_transport()
     data2 = gen_public_transport()
     
@@ -71,7 +76,7 @@ def run_test():
     if s1 == s2:
         print("Test 1: Thank god, dh works\n" + str(data1) + "\n" + str(s1) + "\n" + str(s2) + "\n")
     else:
-        print("Test 1: Oh no, something terrible has gone wrong with dh\n" + str(data1) + "\n" + str(s1) + "\n" + str(s2) + "\n")
+        print("Test 1: Oh no, something terrible has gone wrong with dh\n" + str(data1) + "\n" + str(s1) + "\n" + str(s2) + "\n")'''
 
     # Test encrypted key exchange, to implement PFS properly
     long_term_key = "abcdefghijklmnop"
@@ -79,8 +84,8 @@ def run_test():
     data1 = gen_public_transport(True, long_term_key)
     data2 = gen_public_transport(True, long_term_key)
     
-    #s1 = gen_session_key(data1[0], data2[1], True, long_term_key)
-    '''s2 = gen_session_key(data2[0], data1[1], True, long_term_key)
+    #s1 = gen_session_key(data1[PUB_TRANSPORT_IDX], data2[LOC_EXPONENT_IDX], True, long_term_key)
+    '''s2 = gen_session_key(data2[PUB_TRANSPORT_IDX], data1[LOC_EXPONENT_IDX], True, long_term_key)
     
     if s1 == s2:
         print("Test 2: Thank god, dh works\n" + str(data1) + "\n" + str(s1) + "\n" + str(s2) + "\n")
@@ -90,12 +95,38 @@ def run_test():
     return
     
     
-def intToByteStream(inputInt):
-    bytes = [0 for i in range(len(str(inputInt))-1)]
-    for idx in range(0, (len(str(inputInt)) - 1)):
-        bytes[idx] = inputInt % 256
-        inputInt = int(inputInt / 256)
+def intToByteArray(inputInt):
+    int_bytes = bytearray()
+    idx = 0
+    while inputInt > 0:
+        int_bytes.append(inputInt % 256)
+        inputInt = inputInt // 256        
+        idx += 1
+    print(str(int_bytes))
+       
+    return int_bytes
+
+
+def byteArrayToInt(int_bytes):
+    ret_int = 0
+    
+    while(len(int_bytes) > 0):
+        ret_int = ret_int*256 + int_bytes.pop()
         
-    return bytes
+    return ret_int
         
         
+        
+run_test() 
+
+
+
+
+
+
+
+
+
+
+
+
