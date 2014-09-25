@@ -114,15 +114,7 @@ class VPNApp(Frame):
         receivedEntry.grid(row=10, column=1)
 
 def main():    
-    print(str(struct.pack('@P', 255)))
-    print(str(struct.pack('P', 256)))
-    print(str(struct.pack('P', 257)))
     dh.run_test()
-    #dh.intToByteArray(255)
-    #dh.intToByteArray(256)
-    #dh.intToByteArray(257)
-    
-    '''
     
     # Create a root window that will hold everything for us
     root = Tk()
@@ -132,7 +124,7 @@ def main():
     app = VPNApp(root)
 
     # Draw the window
-    app.mainloop()'''
+    app.mainloop()
         
 
 if __name__ == '__main__':

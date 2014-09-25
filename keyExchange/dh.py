@@ -102,7 +102,7 @@ def intToByteArray(inputInt):
         int_bytes.append(inputInt % 256)
         inputInt = inputInt // 256        
         idx += 1
-    print(str(int_bytes))
+    #print(str(int_bytes))
        
     return int_bytes
 
@@ -120,7 +120,17 @@ def byteArrayToInt(int_bytes):
 run_test() 
 
 
-
+'''
+    print(str(struct.pack('@P', 255)))
+    print(str(struct.pack('P', 256)))
+    print(str(struct.pack('P', 257)))
+    
+    
+    #dh.intToByteArray(255)
+    #dh.intToByteArray(256)
+    #dh.intToByteArray(257)
+    
+    '''
 
 
 
