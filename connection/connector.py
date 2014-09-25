@@ -15,6 +15,7 @@ HOST = ''
 PORT = 50002
 SOCKET_TIMEOUT = 30.0
 
+# Max message length
 RECV_LENGTH = 1024
 
 def setup_server():
