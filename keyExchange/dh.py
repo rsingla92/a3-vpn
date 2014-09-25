@@ -78,6 +78,8 @@ def gen_session_key(inc_pub_transport, local_exponent, encrypt_protocol=False, l
     
     session_key = pow(inc_pub_transport, local_exponent, prime)
     
+    session_key = intToByteArray(session_key)[:16] #get first 16 bytes, so that key corresponds to a true aes key.
+    
     if debug:
         print("private session key is: " + str(session_key))
     
@@ -131,8 +133,8 @@ def run_test():
     data1 = gen_public_transport()
     data2 = gen_public_transport()
     
-    s1 = gen_session_key(data1[0], data2[1])
-    s2 = gen_session_key(data2[0], data1[1])
+    s1 = gen_session_key(data1[PUB_TRANSPORT_IDX], data2[LOC_EXPONENT_IDX])
+    s2 = gen_session_key(data2[PUB_TRANSPORT_IDX], data1[LOC_EXPONENT_IDX])
     
     if s1 == s2:
         print("Test 1: Thank god, dh works with non-encrypted data passing\n" + str(data1) + "\n" + str(s1) + "\n" + str(s2) + "\n")
