@@ -41,7 +41,7 @@ def gen_public_transport(encrypt_protocol=False, long_term_key=0):
         ciphertext = aes.aes_encrypt(intToByteArray(pub_transport), long_term_key)
         if debug:
             print("ciphertext: " + str(ciphertext))
-        return (str(ciphertext), local_exponent)
+        return (ciphertext, local_exponent)
 
 def gen_session_key(inc_pub_transport, local_exponent, encrypt_protocol=False, long_term_key=0):
     
@@ -84,13 +84,13 @@ def run_test():
     data1 = gen_public_transport(True, long_term_key)
     data2 = gen_public_transport(True, long_term_key)
     
-    #s1 = gen_session_key(data1[PUB_TRANSPORT_IDX], data2[LOC_EXPONENT_IDX], True, long_term_key)
-    '''s2 = gen_session_key(data2[PUB_TRANSPORT_IDX], data1[LOC_EXPONENT_IDX], True, long_term_key)
+    s1 = gen_session_key(data1[PUB_TRANSPORT_IDX], data2[LOC_EXPONENT_IDX], True, long_term_key)
+    s2 = gen_session_key(data2[PUB_TRANSPORT_IDX], data1[LOC_EXPONENT_IDX], True, long_term_key)
     
     if s1 == s2:
         print("Test 2: Thank god, dh works\n" + str(data1) + "\n" + str(s1) + "\n" + str(s2) + "\n")
     else:
-        print("Test 2: Oh no, something terrible has gone wrong with dh\n" + str(data1) + "\n" + str(s1) + "\n" + str(s2) + "\n")'''
+        print("Test 2: Oh no, something terrible has gone wrong with dh\n" + str(data1) + "\n" + str(s1) + "\n" + str(s2) + "\n")
     
     return
     
