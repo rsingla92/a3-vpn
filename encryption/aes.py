@@ -380,6 +380,7 @@ def aes_encrypt(dat, key):
 
     Returns the ciphertext for the given data and key.
     """
+    
     if len(key) != 16:
         raise TypeError('The key must be 16 bytes')
     key = [ord(x) if isinstance(x, str) else x for x in key]
@@ -405,6 +406,7 @@ def aes_decrypt(dat, key):
 
     Returns the plaintext for the given ciphertext and key.
     """
+    
     if len(key) != 16:
         raise TypeError('The key must be 16 bytes')
     key = [ord(x) if isinstance(x, str) else x for x in key]
@@ -415,3 +417,4 @@ def aes_decrypt(dat, key):
         block = aes_singleblock_inverse(dat[i:i+16], ekey)
         plaintext += [x ^ y for (x,y) in zip(block, dat[i-16:i])]
     return plaintext
+

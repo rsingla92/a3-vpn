@@ -2,6 +2,9 @@
 from tkinter import *
 import logging
 
+import dh
+import aes
+
 class WidgetLogger(logging.Handler):
     """TkInter text widget to setup logging"""
     def __init__(self, widget):
@@ -109,7 +112,11 @@ class VPNApp(Frame):
         receivedEntry = Entry(self)
         receivedEntry.grid(row=10, column=1)
 
-def main():
+def main():    
+    dh.run_test()
+    
+    
+    
     # Create a root window that will hold everything for us
     root = Tk()
     root.geometry("500x500+300+300")
