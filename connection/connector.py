@@ -18,88 +18,113 @@ SOCKET_TIMEOUT = 30.0
 # Max message length
 RECV_LENGTH = 1024
 
-def setup_server():
+def setup_reciever():
     """
     Starts the VPN server
     Returns:
-        queue which will be populated with incoming messages
+        queue which will be populated with incoming messages,
+        process
     Note:
         rases a socket.timeout exception if a connection cannot be made
         quickly enough
     """
     return _setup(host=HOST, port=PORT, server=True)
 
-def setup_client(server_host):
+# NOTE: MUST START SENDER FIRST
+def setup_sender(server_host=HOST):
     """
     Starts the VPN client
     Returns:
-        queue which messages will be sent from
+        queue which messages will be sent from,
+        process
     Note:
         rases a socket.timeout exception if a connection cannot be made
         quickly enough
     """
-    return _setup(host=server_host, port=PORT)
+    return _setup(host=server_host, port=PORT, server=False)
 
 def _setup(host, port, server=True):
     """
     Sets up and starts Client/Server processes
+    Returns queue and process
     """
     print("Host ip addr:")
     ip = socket.gethostbyname(socket.gethostname())
     print(ip, "\n")
 
-    socket.setdefaulttimeout(SOCKET_TIMEOUT)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind((host, port))
+    # socket.setdefaulttimeout(SOCKET_TIMEOUT)
+    sock = _get_socket()
+    # sock.listen(5)
 
-    sock.listen(5)
+    # conn, addr = sock.accept()
+    # print("Connection Address", addr, "\n")
 
-    conn, addr = sock.accept()
-    print("Connection Address", addr, "\n")
-
-    message_queue = queue.queue()
-    thread_class = Server if server else Client
-    t = thread_class(socket, message_queue)
+    message_queue = queue.Queue()
+    thread_class = Reciever if server else Sender
+    t = thread_class(sock, host, port, message_queue)
 
     # Setting this means the thread (t) will get killed when the program exits
     # Note that they don't get cleaned up, but it shouldn't be an issue
     t.daemon = 1
     t.start()
-    return message_queue
+    return message_queue, t
 
-class Server(threading.Thread):
+def _get_socket():
+    sock = socket.socket()#socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    return sock
+
+class Reciever(threading.Thread):
     """
     Server class, recieves messages on a socket and puts them in a queue
     """
-    def __init__(self, socket, message_queue):
+    def __init__(self, sock, host, port, message_queue):
         threading.Thread.__init__(self)
-        self.sock = socket
+        self.sock = sock
         self.message_queue = message_queue
+        self.host = host
+        self.port = port
 
     def run(self):
+        p_tup = (self.host, self.port)
         while True:
-            # Not 100% that we need to accept every time on the server
-            conn, addr = self.sock.accept()
-            message = conn.recv(RECV_LENGTH)
-            if message:
-                decoded = message.decode()
-                print(decoded)
-                message_queue.put(decoded)
+            try:
+                s = _get_socket()
+                s.connect(p_tup)
+                message = s.recv(RECV_LENGTH)
+                if message:
+                    decoded = message.decode()
+                    print(decoded)
+                    self.message_queue.put(decoded)
+                s.close()
+            except OSError as e:
+                raise
+                print(e)
 
-class Client(threading.Thread):
+class Sender(threading.Thread):
     """
-    Client class, sends messages from a queue as they are inserted
+    Sender class, sends messages from a queue as they are inserted
     """
-    def __init__(self, socket, send_queue):
+    def __init__(self, sock, host, port, send_queue):
         threading.Thread.__init__(self)
-        self.sock = socket
+        self.sock = sock
         self.send_queue = send_queue
+        self.host = host
+        self.port = port
 
     def run(self):
+        p_tup = (self.host, self.port)
+        self.sock.bind(p_tup)
+        self.sock.listen(5)
         while True:
-            if not send_queue.empty():
-                conn, addr = self.sock.accept()
-                message = send_queue.get()
-                encoded = message.encode()
-                conn.send(encoded)
+            if not self.send_queue.empty():
+                try:
+                    conn, addr = self.sock.accept()
+                    message = self.send_queue.get()
+                    encoded = message.encode()
+                    conn.send(encoded)
+                    # conn.send('CONNECT')
+                    conn.close()
+                except OSError as e:
+                    raise
+                    print(e)
