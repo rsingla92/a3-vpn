@@ -2,6 +2,7 @@
 VPN connector
 """
 
+import time
 import socket
 import queue
 import threading
@@ -12,23 +13,16 @@ HOST = ''
 PORT = 50002
 SOCKET_TIMEOUT = 30.0
 
-# Max message length
-RECV_LENGTH = 1024
+RECV_ATTEMPTS = 16
 
-def establish_connection(other_host=HOST, port=PORT, sender=True):
+def establish_connection(host=HOST, port=PORT):
     """
     Establish a connection between two VPN instances
     Returns:
         tuple of send_queue, recieve_queue
     """
-    # NOTE: this will not work
-    # both setup senders, then recievers
-    if sender:
-        send_queue, st = setup_sender(host=HOST, port=port)
-        recieve_queue, rt = setup_reciever(port=port)
-    else:
-        recieve_queue, rt = setup_reciever(port=port)
-        send_queue, st = setup_sender(host=HOST, port=port)
+    send_queue, st = setup_sender(host=host, port=port)
+    recieve_queue, rt = setup_reciever(port=port)
     return send_queue, recieve_queue
 
 def setup_reciever(port=PORT):
@@ -43,7 +37,6 @@ def setup_reciever(port=PORT):
     """
     return _setup(host=HOST, port=port, server=True)
 
-# NOTE: MUST START SENDER FIRST
 def setup_sender(host=HOST, port=PORT):
     """
     Starts the VPN client
@@ -93,6 +86,7 @@ class Reciever(threading.Thread):
         self.message_queue = message_queue
         self.host = host
         self.port = port
+        self.failed_connections = 0
 
     def log_recieved(self, message):
         logger = logging.getLogger()
@@ -111,9 +105,14 @@ class Reciever(threading.Thread):
                     self.message_queue.put(decoded)
                 s.close()
                 self.log_recieved(message)
-            except OSError as e:
-                raise
-                print(e)
+                self.failed_connections = 0
+            except ConnectionRefusedError as e:
+                print('Reciever connection refused...')
+                self.failed_connections += 1
+                if failed_connections > RECV_ATTEMPTS:
+                    raise
+                time.sleep(1)
+
 
 class Sender(threading.Thread):
     """
