@@ -347,12 +347,24 @@ def aes_singleblock(dat, ekey):
     """
     dat = create_state(dat)
     dat = add_round_key(dat, ekey[:16])
+    print ("round 0:")
+    print ("key: [" + ''.join(','.join(hex(n) for n in ekey[:16])) + ']')
+    print ("data: " + '[' + '],\n['.join(','.join(hex(n) for n in ar) for ar in dat) + ']')
     for i in range(10):
         dat = bytesub_transform(dat)
         dat = shift_row(dat)
         if i < 9:
             dat = mix_columns(dat)
         dat = add_round_key(dat, ekey[(i+1)*16:(i+2)*16])
+        
+        print ("round " + str(i+1) + ":")
+        print ("key: [" + ''.join(','.join(hex(n) for n in ekey[(i+1)*16:(i+2)*16])) + ']')
+        print ("data: " + '[' + '],\n['.join(','.join(hex(n) for n in ar) for ar in dat) + ']')
+        
+        #print("End of round_idx: " + str(i+1) + " with new Key = ")
+        #print ("[" + ''.join(','.join(hex(n) for n in change_to_seit_unsw_format(ekey[(i+1)*16:(i+2)*16])) + ']'))
+        #print("and new data_block = ")
+        #print ("[" + ''.join(','.join(hex(n) for n in change_to_seit_unsw_format(dat)) + ']'))
     return create_stream(dat)
 
 def aes_singleblock_inverse(dat, ekey):
@@ -418,3 +430,19 @@ def aes_decrypt(dat, key):
         plaintext += [x ^ y for (x,y) in zip(block, dat[i-16:i])]
     return plaintext
 
+
+def change_to_seit_unsw_format(block):
+    #purely change form so that I can compare with http://seit.unsw.adfa.edu.au/staff/sites/lpb/src/AEScalc/AEScalc.html
+    readable = []
+    for column in range(4):
+        for row in block:
+            readable.append(row[column])
+    
+    return readable;
+
+key = [0x2b, 0x28, 0xab, 0x09, 0x7e, 0xae, 0xf7, 0xcf, 0x15, 0xd2, 0x15, 0x4f, 0x16, 0xa6, 0x88, 0x3c] #test key from aes demo in class.
+#key = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f]
+plaintext = [0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff]
+goal_ciphertext = [0x69, 0xc4, 0xe0, 0xd8, 0x6a, 0x7b, 0x04, 0x30, 0xd8, 0xcd, 0xb7, 0x80, 0x70, 0xb4, 0xc5, 0x5a]
+
+ciphertext = aes_encrypt(plaintext, key)
