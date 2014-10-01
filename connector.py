@@ -178,11 +178,9 @@ class Reciever(threading.Thread):
                 print('Reciever connection refused...')
                 self.failed_connections += 1
                 if failed_connections > RECV_ATTEMPTS:
-                    raise
+                    print(e)
+                    break
                 time.sleep(1)
-            except ConnectionResetError as e:
-                print(e)
-                break
             finally:
                 s.close()
 
@@ -217,9 +215,6 @@ class Sender(threading.Thread):
                     message = self.send_queue.get()
                     conn.send(message)
                     self.log_sent(message)
-                except OSError as e:
-                    raise
-                    print(e)
                 finally:
                     conn.close()
 
