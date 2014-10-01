@@ -82,10 +82,10 @@ class VPNApp(Frame):
     def toggle_mode(self):
         # TODO: Add some logging here
         if mode_button.config('text')[-1] == "Mode: Client (press to switch)":
-            isClient = false
+            is_client = false
         else:
             mode_button.config(text="Mode: Server (press to switch)")
-            isClient = true
+            is_client = true
 
     def setup_entries(self):
         ip_addr_label = Label(self, text="IP Addr")
@@ -113,7 +113,9 @@ class VPNApp(Frame):
         received_entry = Entry(self)
         received_entry.grid(row=10, column=1)
 
-def main():       
+def main():    
+    #dh.run_test()
+    
     # Create a root window that will hold everything for us
     root = Tk()
     root.geometry("500x500+300+300")
