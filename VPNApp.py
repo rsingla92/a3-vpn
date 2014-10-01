@@ -134,6 +134,7 @@ class VPNApp(Frame):
         host = self.ip_addr_entry.get()
         port = self.port_entry.get()
         self.connector = connector.Connector(host, port)
+        self.connector.connect()
 
         # Generate a 16 byte key, from a hash of the shared secret value.
         # Then use that value, to encrypt a Deffie-Hellman exchange to 
