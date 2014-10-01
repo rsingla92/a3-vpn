@@ -97,6 +97,7 @@ class VPNApp(Frame):
         else:
             # Changing into the server
             self.mode_button.config(text="Mode: Server (press to switch)")
+            self.ip_addr_entry.delete(0, END)
             self.ip_addr_entry.config(state='disabled')
 
     def quit_mode(self):
