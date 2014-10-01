@@ -61,16 +61,16 @@ class VPNApp(Frame):
         mode_button = Button(self, text="Mode: Client (press to switch)", command = self.toggle_mode )
         mode_button.grid(row=6, column=2)
 
-        connect_button = Button(self, text="Connect")
+        connect_button = Button(self, text="Connect", command=self.connect_callback)
         connect_button.grid(row=7, column=2)
 
-        send_button = Button(self, text="Send")
+        send_button = Button(self, text="Send", command=self.send_callback)
         send_button.grid(row=8, column=2)
 
-        stop_button = Button(self, text="Stop")
+        stop_button = Button(self, text="Stop", command=self.stop_callback)
         stop_button.grid(row=10, column=2)
 
-        continue_button = Button(self, text="Continue")
+        continue_button = Button(self, text="Continue", command=self.continue_callback)
         continue_button.grid(row=9, column=2)
 
         quit_button = Button(self, text="Quit")
@@ -113,9 +113,21 @@ class VPNApp(Frame):
         received_entry = Entry(self)
         received_entry.grid(row=10, column=1)
 
-def main():    
+    def connect_callback():
+        pass
+
+    def send_callback():
+        pass
+
+    def continue_callback():
+        pass
+
+    def stop_callback():
+        pass
+
+def main():
     #dh.run_test()
-    
+
     # Create a root window that will hold everything for us
     root = Tk()
     root.geometry("500x500+300+300")
