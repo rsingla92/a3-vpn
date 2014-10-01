@@ -69,6 +69,7 @@ class Connector(object):
         rcv = None
         while rcv == None:
             rcv = self.receive()
+        return rcv
 
     def assert_alive(self):
         if not self.is_alive():
