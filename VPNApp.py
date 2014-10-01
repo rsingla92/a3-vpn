@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 from tkinter import *
 import logging
-
+import struct
 import sys
+
 import dh
 import aes
-import struct
 
 class WidgetLogger(logging.Handler):
     """TkInter text widget to setup logging"""
@@ -32,6 +32,8 @@ class VPNApp(Frame):
         self.parent = parent
         self.parent.title("VPN Window")
         self.pack(fill=BOTH, expand=1)
+
+        self.is_client = True
 
         # Use the GridManager
         self.setup_grid()
@@ -77,17 +79,22 @@ class VPNApp(Frame):
         self.quit_button = Button(self, text="Quit", command=self.quit_mode)
         self.quit_button.grid(row=11, column=4)
 
-        self.help_button = Button(self, text="Help")
+        self.help_button = Button(self, text="Help", command=self.help_callback)
         self.help_button.grid(row=11, column=0)
 
     def toggle_mode(self):
         # TODO: Add some logging here
         # TODO: Depending on the mode, disable certain text fields
-        if self.mode_button.config('text')[-1] == "Mode: Client (press to switch)":
-            self.is_client = False
+        self.is_client = not self.is_client
+
+        if self.is_client:
+            # Changing into the client
+            self.mode_button.config(text="Mode: Client (press to switch)")
+            self.ip_addr_entry.config(state='normal')
         else:
+            # Changing into the server
             self.mode_button.config(text="Mode: Server (press to switch)")
-            self.is_client = True
+            self.ip_addr_entry.config(state='disabled')
 
     def quit_mode(self):
         sys.exit(0) 
@@ -161,6 +168,9 @@ class VPNApp(Frame):
     def stop_callback():
         pass
 
+    def help_callback():
+        pass
+
 def main():
     #dh.run_test()
 
@@ -173,7 +183,6 @@ def main():
 
     # Draw the window
     app.mainloop()
-        
 
 if __name__ == '__main__':
     main()
