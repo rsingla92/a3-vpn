@@ -62,6 +62,14 @@ class Connector(object):
         else:
             return None
 
+    def recieve_wait(self):
+        """
+        Waits until you recieve somehthing, then return it
+        """
+        rcv = None
+        while rcv == None:
+            rcv = self.recieve()
+
     def assert_alive(self):
         if not self.is_alive():
             self.close()
@@ -75,10 +83,15 @@ class Connector(object):
             return False
 
     def close(self):
-        self.recieve_thread.close()
-        self.send_thread.close()
+        if self.recieve_thread != None:
+            self.recieve_thread.close()
+        if self.send_thread != None:
+            self.send_thread.close()
         self.send_thread = None
         self.recieve_thread = None
+
+    def __del__(self):
+        self.close()
 
 def setup_reciever(port=PORT):
     """
@@ -159,7 +172,6 @@ class Reciever(threading.Thread):
                 if message:
                     decoded = message.decode()
                     self.message_queue.put(decoded)
-                s.close()
                 self.log_recieved(message)
                 self.failed_connections = 0
             except ConnectionRefusedError as e:
@@ -171,6 +183,8 @@ class Reciever(threading.Thread):
             except ConnectionResetError as e:
                 print(e)
                 break
+            finally:
+                s.close()
 
     def close(self):
         self.cont = False
@@ -203,11 +217,12 @@ class Sender(threading.Thread):
                     message = self.send_queue.get()
                     encoded = message.encode()
                     conn.send(encoded)
-                    conn.close()
                     self.log_sent(message)
                 except OSError as e:
                     raise
                     print(e)
+                finally:
+                    conn.close()
 
     def close(self):
         self.sock.close()
