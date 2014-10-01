@@ -9,6 +9,7 @@ import signal
 import queue
 import threading
 import time
+import logging
 
 # Any host on the machine will work
 HOST = ''
@@ -54,10 +55,6 @@ def _setup(host, port, server=True):
 
     # socket.setdefaulttimeout(SOCKET_TIMEOUT)
     sock = _get_socket()
-    # sock.listen(5)
-
-    # conn, addr = sock.accept()
-    # print("Connection Address", addr, "\n")
 
     message_queue = queue.Queue()
     thread_class = Reciever if server else Sender
@@ -70,7 +67,8 @@ def _setup(host, port, server=True):
     return message_queue, t
 
 def _get_socket():
-    sock = socket.socket()#socket.AF_INET, socket.SOCK_STREAM)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # this lets us use the same port for multiple sockets
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     return sock
 
@@ -80,10 +78,14 @@ class Reciever(threading.Thread):
     """
     def __init__(self, sock, host, port, message_queue):
         threading.Thread.__init__(self)
-        self.sock = sock
         self.message_queue = message_queue
         self.host = host
         self.port = port
+
+    def log_recieved(message):
+        logger = logging.getLogger()
+        to_log = "Recieved: {}".format(message)
+        logger.info(to_log)
 
     def run(self):
         p_tup = (self.host, self.port)
@@ -94,9 +96,9 @@ class Reciever(threading.Thread):
                 message = s.recv(RECV_LENGTH)
                 if message:
                     decoded = message.decode()
-                    print(decoded)
                     self.message_queue.put(decoded)
                 s.close()
+                self.log_recieved(message)
             except OSError as e:
                 raise
                 print(e)
@@ -112,6 +114,11 @@ class Sender(threading.Thread):
         self.host = host
         self.port = port
 
+    def log_sent(message):
+        logger = logging.getLogger()
+        to_log = "Sent: {}".format(message)
+        logger.info(to_log)
+
     def run(self):
         p_tup = (self.host, self.port)
         self.sock.bind(p_tup)
@@ -123,8 +130,8 @@ class Sender(threading.Thread):
                     message = self.send_queue.get()
                     encoded = message.encode()
                     conn.send(encoded)
-                    # conn.send('CONNECT')
                     conn.close()
+                    self.log_sent(message)
                 except OSError as e:
                     raise
                     print(e)
