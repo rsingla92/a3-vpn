@@ -8,8 +8,6 @@ gen_session_key(inc_pub_transport, local_exponent, encrypt_protocol=False, long_
 -- used with the incoming transport data to generate a session key, only known
         locally, and to the computer that sent the transport data
 """
-from _collections_abc import ByteString
-
 debug = False
 
 import random
@@ -50,7 +48,6 @@ def gen_public_transport(encrypt_protocol=False, long_term_key=0):
         print("pub_transport:" + str(pub_transport))
         
     if encrypt_protocol == False:
-        #pub_transport is an int, convert to a bytestring
         return (pub_transport, local_exponent)
     else:
         #pub_transport is an array of bytes
