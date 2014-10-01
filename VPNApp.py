@@ -33,12 +33,12 @@ class VPNApp(Frame):
         self.pack(fill=BOTH, expand=1)
 
         # Use the GridManager
-        self.setupGrid()
-        self.setupButtons()
-        self.setupEntries()
+        self.setup_grid()
+        self.setup_buttons()
+        self.setup_entries()
         logging.info('Completed construction!')
 
-    def setupGrid(self):
+    def setup_grid(self):
         self.columnconfigure(1, weight=1)
         self.columnconfigure(3, pad=7)
         self.rowconfigure(3, weight=1)
@@ -56,62 +56,62 @@ class VPNApp(Frame):
         handler = WidgetLogger(textArea)
         logger.addHandler(handler)
 
-    def setupButtons(self):
+    def setup_buttons(self):
         # TODO: Add the command parameter to all button constructor calls.
-        modeButton = Button(self, text="Mode: Client (press to switch)", command = self.toggleMode )
-        modeButton.grid(row=6, column=2)
+        mode_button = Button(self, text="Mode: Client (press to switch)", command = self.toggle_mode )
+        mode_button.grid(row=6, column=2)
 
-        connectButton = Button(self, text="Connect")
-        connectButton.grid(row=7, column=2)
+        connect_button = Button(self, text="Connect")
+        connect_button.grid(row=7, column=2)
 
-        sendButton = Button(self, text="Send")
-        sendButton.grid(row=8, column=2)
+        send_button = Button(self, text="Send")
+        send_button.grid(row=8, column=2)
 
-        stopButton = Button(self, text="Stop")
-        stopButton.grid(row=10, column=2)
+        stop_button = Button(self, text="Stop")
+        stop_button.grid(row=10, column=2)
 
-        continueButton = Button(self, text="Continue")
-        continueButton.grid(row=9, column=2)
+        continue_button = Button(self, text="Continue")
+        continue_button.grid(row=9, column=2)
 
-        quitButton = Button(self, text="Quit")
-        quitButton.grid(row=11, column=4)
+        quit_button = Button(self, text="Quit")
+        quit_button.grid(row=11, column=4)
 
-        helpButton = Button(self, text="Help")
-        helpButton.grid(row=11, column=0)
+        help_button = Button(self, text="Help")
+        help_button.grid(row=11, column=0)
 
-    def toggleMode(self):
+    def toggle_mode(self):
         # TODO: Add some logging here
-        if modeButton.config('text')[-1] == "Mode: Client (press to switch)":
+        if mode_button.config('text')[-1] == "Mode: Client (press to switch)":
             isClient = false
         else:
-            modeButton.config(text="Mode: Client (press to switch)")
+            mode_button.config(text="Mode: Server (press to switch)")
             isClient = true
 
-    def setupEntries(self):
-        ipAddrLabel = Label(self, text="IP Addr")
-        ipAddrLabel.grid(row=6, column=0)
-        ipAddrEntry = Entry(self)
-        ipAddrEntry.grid(row=6, column=1)
+    def setup_entries(self):
+        ip_addr_label = Label(self, text="IP Addr")
+        ip_addr_label.grid(row=6, column=0)
+        ip_addr_entry = Entry(self)
+        ip_addr_entry.grid(row=6, column=1)
 
-        portLabel = Label(self,text="Port")
-        portLabel.grid(row=7, column=0)
-        portEntry = Entry(self)
-        portEntry.grid(row=7, column=1)
+        port_label = Label(self,text="Port")
+        port_label.grid(row=7, column=0)
+        port_entry = Entry(self)
+        port_entry.grid(row=7, column=1)
 
-        sharedValueLabel = Label(self,text="Secret Shared Value")
-        sharedValueLabel.grid(row=8, column=0)
-        sharedValueEntry = Entry(self)
-        sharedValueEntry.grid(row=8, column=1)
+        shared_value_label = Label(self,text="Secret Shared Value")
+        shared_value_label.grid(row=8, column=0)
+        shared_value_entry = Entry(self)
+        shared_value_entry.grid(row=8, column=1)
 
-        sendLabel = Label(self, text="Data to be Sent")
-        sendLabel.grid(row=9, column=0)
-        sendEntry = Entry(self)
-        sendEntry.grid(row=9, column=1)
+        send_label = Label(self, text="Data to be Sent")
+        send_label.grid(row=9, column=0)
+        send_entry = Entry(self)
+        send_entry.grid(row=9, column=1)
 
-        receivedLabel = Label(self, text="Data as Received")
-        receivedLabel.grid(row=10, column=0)
-        receivedEntry = Entry(self)
-        receivedEntry.grid(row=10, column=1)
+        received_label = Label(self, text="Data as Received")
+        received_label.grid(row=10, column=0)
+        received_entry = Entry(self)
+        received_entry.grid(row=10, column=1)
 
 def main():    
     dh.run_test()
