@@ -177,7 +177,7 @@ class Reciever(threading.Thread):
             except ConnectionRefusedError as e:
                 print('Reciever connection refused...')
                 self.failed_connections += 1
-                if failed_connections > RECV_ATTEMPTS:
+                if self.failed_connections > RECV_ATTEMPTS:
                     raise
                 time.sleep(1)
             except ConnectionResetError as e:
