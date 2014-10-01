@@ -171,7 +171,7 @@ class Reciever(threading.Thread):
                 message = s.recv(RECV_LENGTH)
                 if message:
                     decoded = message.decode()
-                    self.message_queue.put(decoded)
+                    self.message_queue.put(message)
                 self.log_recieved(message)
                 self.failed_connections = 0
             except ConnectionRefusedError as e:
@@ -215,8 +215,7 @@ class Sender(threading.Thread):
                 try:
                     conn, addr = self.sock.accept()
                     message = self.send_queue.get()
-                    encoded = message.encode()
-                    conn.send(encoded)
+                    conn.send(message)
                     self.log_sent(message)
                 except OSError as e:
                     raise
