@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 from tkinter import *
 import logging
-
+import struct
 import sys
+
 import dh
 import aes
-import struct
 
 class WidgetLogger(logging.Handler):
     """TkInter text widget to setup logging"""
