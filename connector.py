@@ -19,7 +19,21 @@ SOCKET_TIMEOUT = 30.0
 # Max message length
 RECV_LENGTH = 1024
 
-def setup_reciever():
+def establish_connection(other_host=HOST, port=PORT, sender=True):
+    """
+    Establish a connection between two VPN instances
+    Returns:
+        tuple of send_queue, recieve_queue
+    """
+    if sender:
+        send_queue, st = setup_sender(host=HOST, port=port)
+        recieve_queue, rt = setup_reciever(port=port)
+    else:
+        recieve_queue, rt = setup_reciever(port=port)
+        send_queue, st = setup_sender(host=HOST, port=port)
+    return send_queue, recieve_queue
+
+def setup_reciever(port=PORT):
     """
     Starts the VPN server
     Returns:
@@ -29,10 +43,10 @@ def setup_reciever():
         rases a socket.timeout exception if a connection cannot be made
         quickly enough
     """
-    return _setup(host=HOST, port=PORT, server=True)
+    return _setup(host=HOST, port=port, server=True)
 
 # NOTE: MUST START SENDER FIRST
-def setup_sender(server_host=HOST):
+def setup_sender(host=HOST, port=PORT):
     """
     Starts the VPN client
     Returns:
@@ -42,7 +56,7 @@ def setup_sender(server_host=HOST):
         rases a socket.timeout exception if a connection cannot be made
         quickly enough
     """
-    return _setup(host=server_host, port=PORT, server=False)
+    return _setup(host=host, port=port, server=False)
 
 def _setup(host, port, server=True):
     """
@@ -82,7 +96,7 @@ class Reciever(threading.Thread):
         self.host = host
         self.port = port
 
-    def log_recieved(message):
+    def log_recieved(self, message):
         logger = logging.getLogger()
         to_log = "Recieved: {}".format(message)
         logger.info(to_log)
@@ -114,7 +128,7 @@ class Sender(threading.Thread):
         self.host = host
         self.port = port
 
-    def log_sent(message):
+    def log_sent(self, message):
         logger = logging.getLogger()
         to_log = "Sent: {}".format(message)
         logger.info(to_log)
