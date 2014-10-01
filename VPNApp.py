@@ -113,9 +113,7 @@ class VPNApp(Frame):
         receivedEntry = Entry(self)
         receivedEntry.grid(row=10, column=1)
 
-def main():    
-    #dh.run_test()
-    
+def main():       
     # Create a root window that will hold everything for us
     root = Tk()
     root.geometry("500x500+300+300")
