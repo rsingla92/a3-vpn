@@ -25,8 +25,8 @@ class Connector(object):
         self.port = port
         self.send_queue = None
         self.send_thread = None
-        self.recieve_queue = None
-        self.recieve_thread = None
+        self.receive_queue = None
+        self.receive_thread = None
 
     def connect(self):
         """
@@ -34,9 +34,9 @@ class Connector(object):
         """
         if not self.is_alive():
             self.send_queue, st = setup_sender(host=self.host, port=self.port)
-            self.recieve_queue, rt = setup_reciever(port=self.port)
+            self.receive_queue, rt = setup_receiver(port=self.port)
             self.send_thread = st
-            self.recieve_thread = rt
+            self.receive_thread = rt
 
     def send(self, message):
         """
@@ -47,28 +47,29 @@ class Connector(object):
         self.assert_alive() # could use decorator
         self.send_queue.put(message)
 
-    def recieve(self):
+    def receive(self):
         """
         Recieve a message over the connection
         Returns:
-            string recieved if there is data in queue
+            string received if there is data in queue
             otherwise None
         Raises:
             ConnectionDeadException if connection has failed
         """
         self.assert_alive() # could use decorator
-        if not self.recieve_queue.empty():
-            return self.recieve_queue.get()
+        if not self.receive_queue.empty():
+            return self.receive_queue.get()
         else:
             return None
 
-    def recieve_wait(self):
+    def receive_wait(self):
         """
-        Waits until you recieve somehthing, then return it
+        Waits until you receive somehthing, then return it
         """
         rcv = None
         while rcv == None:
-            rcv = self.recieve()
+            rcv = self.receive()
+        return rcv
 
     def assert_alive(self):
         if not self.is_alive():
@@ -76,24 +77,24 @@ class Connector(object):
             raise ConnectionDeadException('Lost connection')
 
     def is_alive(self):
-        if self.send_thread != None and self.recieve_thread != None:
+        if self.send_thread != None and self.receive_thread != None:
             return (self.send_thread.is_alive() 
-                    and self.recieve_thread.is_alive())
+                    and self.receive_thread.is_alive())
         else:
             return False
 
     def close(self):
-        if self.recieve_thread != None:
-            self.recieve_thread.close()
+        if self.receive_thread != None:
+            self.receive_thread.close()
         if self.send_thread != None:
             self.send_thread.close()
         self.send_thread = None
-        self.recieve_thread = None
+        self.receive_thread = None
 
     def __del__(self):
         self.close()
 
-def setup_reciever(port=PORT):
+def setup_receiver(port=PORT):
     """
     Starts the VPN server
     Returns:
@@ -147,7 +148,7 @@ def _get_socket():
 
 class Reciever(threading.Thread):
     """
-    Server class, recieves messages on a socket and puts them in a queue
+    Server class, receives messages on a socket and puts them in a queue
     """
     def __init__(self, sock, host, port, message_queue):
         threading.Thread.__init__(self)
@@ -157,7 +158,7 @@ class Reciever(threading.Thread):
         self.failed_connections = 0
         self.cont = True
 
-    def log_recieved(self, message):
+    def log_received(self, message):
         logger = logging.getLogger()
         to_log = "Recieved: {}".format(message)
         logger.info(to_log)
@@ -170,16 +171,14 @@ class Reciever(threading.Thread):
                 s.connect(p_tup)
                 message = s.recv(RECV_LENGTH)
                 if message:
-                    decoded = message.decode()
                     self.message_queue.put(message)
-                self.log_recieved(message)
+                    self.log_received(message)
                 self.failed_connections = 0
             except ConnectionRefusedError as e:
                 print('Reciever connection refused...')
                 self.failed_connections += 1
                 if failed_connections > RECV_ATTEMPTS:
-                    print(e)
-                    break
+                    raise
                 time.sleep(1)
             finally:
                 s.close()

@@ -3,6 +3,7 @@ from tkinter import *
 import logging
 import struct
 import sys
+import hashlib
 
 import dh
 import aes
@@ -41,7 +42,6 @@ class VPNApp(Frame):
         self.setup_grid()
         self.setup_buttons()
         self.setup_entries()
-        logging.info('Completed construction!')
 
     def setup_grid(self):
         self.columnconfigure(1, weight=1)
@@ -96,6 +96,7 @@ class VPNApp(Frame):
         else:
             # Changing into the server
             self.mode_button.config(text="Mode: Server (press to switch)")
+            self.ip_addr_entry.delete(0, END)
             self.ip_addr_entry.config(state='disabled')
 
     def quit_mode(self):
@@ -112,7 +113,7 @@ class VPNApp(Frame):
         self.port_entry = Entry(self)
         self.port_entry.grid(row=7, column=1)
 
-        self.shared_value_label = Label(self,text="Long Term Secret Key (16 bytes)")
+        self.shared_value_label = Label(self,text="Shared Secret Value")
         self.shared_value_label.grid(row=8, column=0)
         self.shared_value_entry = Entry(self)
         self.shared_value_entry.grid(row=8, column=1)
@@ -130,50 +131,52 @@ class VPNApp(Frame):
     def connect_callback(self):
         # TODO: get these from wherever they come from
         # need port and host params for Connector constructor
-        self.connector = connector.Connector()
+        host = self.ip_addr_entry.get()
+        port = self.port_entry.get()
+        self.connector = connector.Connector(host, port)
 
-        long_term_key = self.shared_value_entry.get()
-        print(self.shared_value_entry.get())
-        if not len(long_term_key) == 16:
-                print("Error, your Long Term Secret Key must be 16 bytes to connect")
-                return []
+        # Generate a 16 byte key, from a hash of the shared secret value.
+        # Then use that value, to encrypt a Deffie-Hellman exchange to 
+        # ensure Perfect Forward Secrecy.
+        md5_key = hashlib.md5()
+        shared_val = self.shared_value_entry.get().encode('utf-8')
+        md5_key.update(shared_val)
+        long_term_key = md5_key.digest()
         
         session_key = []
         if self.is_client:
             #Client DH exchange            
             client_transport = dh.gen_public_transport(True, long_term_key)
-
-            waiting_for_message = True
-            while waiting_for_message:
-                server_transport = (1, 1)
-            session_key = dh.gen_session_key(client_transport[dh.PUB_TRANSPORT_IDX], server_transport[dh.LOC_EXPONENT_IDX], True, long_term_key)
+            self.connector.send(bytes(client_transport[dh.PUB_TRANSPORT_IDX]))
+            server_transport_encrypted = self.connector.receive_wait()
+            session_key = dh.gen_session_key(server_transport_encrypted, client_transport[dh.LOC_EXPONENT_IDX], True, long_term_key)
             
         else:
             #Server DH exchange        
             server_transport = dh.gen_public_transport(True, long_term_key)
-            waiting_for_message = True
-            while waiting_for_message:
-                client_transport = (1, 1)
-            session_key = dh.gen_session_key(server_transport[dh.PUB_TRANSPORT_IDX], client_transport[dh.LOC_EXPONENT_IDX], True, long_term_key)
+            self.connector.send(bytes(server_transport[dh.PUB_TRANSPORT_IDX]))
+            client_transport_encrypted = self.connector.receive_wait()
+            session_key = dh.gen_session_key(client_transport_encrypted, server_transport[dh.PUB_TRANSPORT_IDX], True, long_term_key)
     
         # Enforce Perfect Forward Security by forgetting local exponent 
         client_transport = (0,0)
         server_transport = (0,0)
         
         self.session_key = session_key
+        print(session_key)
     
-    return     
+        return     
 
-    def send_callback():
+    def send_callback(self):
         pass
 
-    def continue_callback():
+    def continue_callback(self):
         pass
 
-    def stop_callback():
+    def stop_callback(self):
         pass
 
-    def help_callback():
+    def help_callback(self):
         pass
 
 def main():
