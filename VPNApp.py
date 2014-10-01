@@ -134,7 +134,7 @@ class VPNApp(Frame):
         self.connector = connector.Connector()
 
         # Generate a 16 byte key, from a hash of the shared secret value.
-        # Then use that value, to encrypt a Deffie-Hellman exchange to 
+        # Then use that value, to encrypt a Diffie-Hellman exchange to 
         # ensure Perfect Forward Secrecy.
         md5_key = hashlib.md5()
         shared_val = self.shared_value_entry.get().encode('utf-8')
@@ -146,6 +146,7 @@ class VPNApp(Frame):
             #Client DH exchange            
             client_transport = dh.gen_public_transport(True, long_term_key)
 
+            #send your message
             waiting_for_message = True
             while waiting_for_message:
                 server_transport = (1, 1)
