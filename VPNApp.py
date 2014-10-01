@@ -2,6 +2,7 @@
 from tkinter import *
 import logging
 
+import sys
 import dh
 import aes
 import struct
@@ -73,7 +74,7 @@ class VPNApp(Frame):
         continue_button = Button(self, text="Continue")
         continue_button.grid(row=9, column=2)
 
-        quit_button = Button(self, text="Quit")
+        quit_button = Button(self, text="Quit", command=self.quit_mode)
         quit_button.grid(row=11, column=4)
 
         help_button = Button(self, text="Help")
@@ -86,6 +87,9 @@ class VPNApp(Frame):
         else:
             mode_button.config(text="Mode: Server (press to switch)")
             is_client = true
+
+    def quit_mode(self):
+        sys.exit(0) 
 
     def setup_entries(self):
         ip_addr_label = Label(self, text="IP Addr")
