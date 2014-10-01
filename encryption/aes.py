@@ -347,9 +347,6 @@ def aes_singleblock(dat, ekey):
     """
     dat = create_state(dat)
     dat = add_round_key(dat, ekey[:16])
-    print ("round 0:")
-    print ("key: [" + ''.join(','.join(hex(n) for n in ekey[:16])) + ']')
-    print ("data: " + '[' + '],\n['.join(','.join(hex(n) for n in ar) for ar in dat) + ']')
     for i in range(10):
         dat = bytesub_transform(dat)
         dat = shift_row(dat)
@@ -357,14 +354,6 @@ def aes_singleblock(dat, ekey):
             dat = mix_columns(dat)
         dat = add_round_key(dat, ekey[(i+1)*16:(i+2)*16])
         
-        print ("round " + str(i+1) + ":")
-        print ("key: [" + ''.join(','.join(hex(n) for n in ekey[(i+1)*16:(i+2)*16])) + ']')
-        print ("data: " + '[' + '],\n['.join(','.join(hex(n) for n in ar) for ar in dat) + ']')
-        
-        #print("End of round_idx: " + str(i+1) + " with new Key = ")
-        #print ("[" + ''.join(','.join(hex(n) for n in change_to_seit_unsw_format(ekey[(i+1)*16:(i+2)*16])) + ']'))
-        #print("and new data_block = ")
-        #print ("[" + ''.join(','.join(hex(n) for n in change_to_seit_unsw_format(dat)) + ']'))
     return create_stream(dat)
 
 def aes_singleblock_inverse(dat, ekey):
