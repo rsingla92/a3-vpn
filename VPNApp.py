@@ -103,7 +103,7 @@ class VPNApp(Frame):
         self.port_entry = Entry(self)
         self.port_entry.grid(row=7, column=1)
 
-        self.shared_value_label = Label(self,text="Secret Shared Value")
+        self.shared_value_label = Label(self,text="Long Term Secret Key (16 bytes)")
         self.shared_value_label.grid(row=8, column=0)
         self.shared_value_entry = Entry(self)
         self.shared_value_entry.grid(row=8, column=1)
@@ -118,8 +118,39 @@ class VPNApp(Frame):
         self.received_entry = Entry(self)
         self.received_entry.grid(row=10, column=1)
 
-    def connect_callback():
-        pass
+    def connect_callback(self):
+        
+        long_term_key = self.shared_value_entry.get()
+        print(self.shared_value_entry.get())
+        if not len(long_term_key) == 16:
+                print("Error, your Long Term Secret Key must be 16 bytes to connect")
+                return []
+        
+        session_key = []
+        if self.is_client:
+            #Client DH exchange            
+            client_transport = dh.gen_public_transport(True, long_term_key)
+            
+            waiting_for_message = True
+            while waiting_for_message:
+                server_transport = (1, 1)
+            session_key = dh.gen_session_key(client_transport[dh.PUB_TRANSPORT_IDX], server_transport[dh.LOC_EXPONENT_IDX], True, long_term_key)
+            
+        else:
+            #Server DH exchange        
+            server_transport = dh.gen_public_transport(True, long_term_key)
+            waiting_for_message = True
+            while waiting_for_message:
+                client_transport = (1, 1)
+            session_key = dh.gen_session_key(server_transport[dh.PUB_TRANSPORT_IDX], client_transport[dh.LOC_EXPONENT_IDX], True, long_term_key)
+    
+        # Enforce Perfect Forward Security by forgetting local exponent 
+        client_transport = (0,0)
+        server_transport = (0,0)
+        
+        self.session_key = session_key
+    
+    return     
 
     def send_callback():
         pass
