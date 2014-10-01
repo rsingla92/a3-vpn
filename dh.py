@@ -51,7 +51,7 @@ def gen_public_transport(encrypt_protocol=False, long_term_key=0):
         
     if encrypt_protocol == False:
         #pub_transport is an int, convert to a bytestring
-        return (bytes(str(pub_transport)), local_exponent)
+        return (pub_transport, local_exponent)
     else:
         #pub_transport is an array of bytes
         pub_transport = aes.aes_encrypt(intToByteArray(pub_transport), long_term_key)
@@ -168,11 +168,6 @@ def run_test():
     else:
         print("Test 3: Failed; PFS failure. Investigate dh.py")
     return
-    
-
-test_int = 12345
-
-print(test_int.to_bytes(5))
   
 #run_test()
 
