@@ -42,7 +42,6 @@ class VPNApp(Frame):
         self.setup_grid()
         self.setup_buttons()
         self.setup_entries()
-        logging.info('Completed construction!')
 
     def setup_grid(self):
         self.columnconfigure(1, weight=1)
@@ -132,7 +131,9 @@ class VPNApp(Frame):
     def connect_callback(self):
         # TODO: get these from wherever they come from
         # need port and host params for Connector constructor
-        self.connector = connector.Connector()
+        host = self.ip_addr_entry.get()
+        port = self.port_entry.get()
+        self.connector = connector.Connector(host, port)
 
         # Generate a 16 byte key, from a hash of the shared secret value.
         # Then use that value, to encrypt a Deffie-Hellman exchange to 
