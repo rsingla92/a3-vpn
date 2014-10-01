@@ -13,17 +13,72 @@ HOST = ''
 PORT = 50002
 SOCKET_TIMEOUT = 30.0
 
+RECV_LENGTH = 1024
 RECV_ATTEMPTS = 16
 
-def establish_connection(host=HOST, port=PORT):
-    """
-    Establish a connection between two VPN instances
-    Returns:
-        tuple of send_queue, recieve_queue
-    """
-    send_queue, st = setup_sender(host=host, port=port)
-    recieve_queue, rt = setup_reciever(port=port)
-    return send_queue, recieve_queue
+class ConnectionDeadException(BaseException):
+    pass
+
+class Connector(object):
+    def __init__(self, host=HOST, port=PORT):
+        self.host = host
+        self.port = port
+        self.send_queue = None
+        self.send_thread = None
+        self.recieve_queue = None
+        self.recieve_thread = None
+
+    def connect(self):
+        """
+        Establish a connection between two VPN instances
+        """
+        if not self.is_alive():
+            self.send_queue, st = setup_sender(host=self.host, port=self.port)
+            self.recieve_queue, rt = setup_reciever(port=self.port)
+            self.send_thread = st
+            self.recieve_thread = rt
+
+    def send(self, message):
+        """
+        Send a message over the connection
+        Raises:
+            ConnectionDeadException if connection has failed
+        """
+        self.assert_alive() # could use decorator
+        self.send_queue.put(message)
+
+    def recieve(self):
+        """
+        Recieve a message over the connection
+        Returns:
+            string recieved if there is data in queue
+            otherwise None
+        Raises:
+            ConnectionDeadException if connection has failed
+        """
+        self.assert_alive() # could use decorator
+        if not self.recieve_queue.empty():
+            return self.recieve_queue.get()
+        else:
+            return None
+
+    def assert_alive(self):
+        if not self.is_alive():
+            self.close()
+            raise ConnectionDeadException('Lost connection')
+
+    def is_alive(self):
+        if self.send_thread != None and self.recieve_thread != None:
+            return (self.send_thread.is_alive() 
+                    and self.recieve_thread.is_alive())
+        else:
+            return False
+
+    def close(self):
+        self.recieve_thread.close()
+        self.send_thread.close()
+        self.send_thread = None
+        self.recieve_thread = None
 
 def setup_reciever(port=PORT):
     """
@@ -87,6 +142,7 @@ class Reciever(threading.Thread):
         self.host = host
         self.port = port
         self.failed_connections = 0
+        self.cont = True
 
     def log_recieved(self, message):
         logger = logging.getLogger()
@@ -95,7 +151,7 @@ class Reciever(threading.Thread):
 
     def run(self):
         p_tup = (self.host, self.port)
-        while True:
+        while self.cont:
             try:
                 s = _get_socket()
                 s.connect(p_tup)
@@ -112,7 +168,12 @@ class Reciever(threading.Thread):
                 if failed_connections > RECV_ATTEMPTS:
                     raise
                 time.sleep(1)
+            except ConnectionResetError as e:
+                print(e)
+                break
 
+    def close(self):
+        self.cont = False
 
 class Sender(threading.Thread):
     """
@@ -124,6 +185,7 @@ class Sender(threading.Thread):
         self.send_queue = send_queue
         self.host = host
         self.port = port
+        self.cont = True
 
     def log_sent(self, message):
         logger = logging.getLogger()
@@ -134,7 +196,7 @@ class Sender(threading.Thread):
         p_tup = (self.host, self.port)
         self.sock.bind(p_tup)
         self.sock.listen(5)
-        while True:
+        while self.cont:
             if not self.send_queue.empty():
                 try:
                     conn, addr = self.sock.accept()
@@ -146,3 +208,7 @@ class Sender(threading.Thread):
                 except OSError as e:
                     raise
                     print(e)
+
+    def close(self):
+        self.sock.close()
+        self.cont = False

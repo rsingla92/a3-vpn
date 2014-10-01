@@ -6,6 +6,7 @@ import sys
 
 import dh
 import aes
+import connector
 
 class WidgetLogger(logging.Handler):
     """TkInter text widget to setup logging"""
@@ -34,6 +35,7 @@ class VPNApp(Frame):
         self.pack(fill=BOTH, expand=1)
 
         self.is_client = True
+        self.connector = None
 
         # Use the GridManager
         self.setup_grid()
@@ -126,7 +128,10 @@ class VPNApp(Frame):
         self.received_entry.grid(row=10, column=1)
 
     def connect_callback(self):
-        
+        # TODO: get these from wherever they come from
+        # need port and host params for Connector constructor
+        self.connector = connector.Connector()
+
         long_term_key = self.shared_value_entry.get()
         print(self.shared_value_entry.get())
         if not len(long_term_key) == 16:
@@ -137,7 +142,7 @@ class VPNApp(Frame):
         if self.is_client:
             #Client DH exchange            
             client_transport = dh.gen_public_transport(True, long_term_key)
-            
+
             waiting_for_message = True
             while waiting_for_message:
                 server_transport = (1, 1)
