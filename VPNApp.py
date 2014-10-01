@@ -90,11 +90,11 @@ class VPNApp(Frame):
         if self.is_client:
             # Changing into the client
             self.mode_button.config(text="Mode: Client (press to switch)")
-
+            self.ip_addr_entry.config(state='normal')
         else:
             # Changing into the server
             self.mode_button.config(text="Mode: Server (press to switch)")
-            # Need to disable the text fields
+            self.ip_addr_entry.config(state='disabled')
 
     def quit_mode(self):
         sys.exit(0) 
