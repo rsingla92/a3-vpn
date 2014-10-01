@@ -353,6 +353,7 @@ def aes_singleblock(dat, ekey):
         if i < 9:
             dat = mix_columns(dat)
         dat = add_round_key(dat, ekey[(i+1)*16:(i+2)*16])
+        
     return create_stream(dat)
 
 def aes_singleblock_inverse(dat, ekey):
