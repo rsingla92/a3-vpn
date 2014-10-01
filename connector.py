@@ -2,13 +2,9 @@
 VPN connector
 """
 
-import sys
 import socket
-import select
-import signal
 import queue
 import threading
-import time
 import logging
 
 # Any host on the machine will work
@@ -25,6 +21,8 @@ def establish_connection(other_host=HOST, port=PORT, sender=True):
     Returns:
         tuple of send_queue, recieve_queue
     """
+    # NOTE: this will not work
+    # both setup senders, then recievers
     if sender:
         send_queue, st = setup_sender(host=HOST, port=port)
         recieve_queue, rt = setup_reciever(port=port)

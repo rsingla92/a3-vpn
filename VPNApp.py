@@ -86,7 +86,7 @@ class VPNApp(Frame):
         # TODO: Add some logging here
         # TODO: Depending on the mode, disable certain text fields
         self.is_client = not self.is_client
-        
+
         if self.is_client:
             # Changing into the client
             self.mode_button.config(text="Mode: Client (press to switch)")
@@ -152,7 +152,6 @@ def main():
 
     # Draw the window
     app.mainloop()
-        
 
 if __name__ == '__main__':
     main()
