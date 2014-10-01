@@ -22,7 +22,7 @@ class ConnectionDeadException(BaseException):
 class Connector(object):
     def __init__(self, host=HOST, port=PORT):
         self.host = host
-        self.port = port
+        self.port = int(port)
         self.send_queue = None
         self.send_thread = None
         self.receive_queue = None
