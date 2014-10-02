@@ -168,6 +168,7 @@ class Reciever(threading.Thread):
         while self.cont:
             try:
                 s = _get_socket()
+                print(self.host)
                 s.connect(p_tup)
                 message = s.recv(RECV_LENGTH)
                 if message:
@@ -177,7 +178,7 @@ class Reciever(threading.Thread):
             except ConnectionRefusedError as e:
                 print('Reciever connection refused...')
                 self.failed_connections += 1
-                if failed_connections > RECV_ATTEMPTS:
+                if self.failed_connections > RECV_ATTEMPTS:
                     raise
                 time.sleep(1)
             finally:
