@@ -33,7 +33,7 @@ class Connector(object):
         Establish a connection between two VPN instances
         """
         if not self.is_alive():
-            self.send_queue, st = setup_sender(host=self.host, port=self.port)
+            self.send_queue, st = setup_sender(host='', port=self.port)
             self.receive_queue, rt = setup_receiver(port=self.port)
             self.send_thread = st
             self.receive_thread = rt
