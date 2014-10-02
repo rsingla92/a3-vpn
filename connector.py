@@ -22,7 +22,7 @@ class ConnectionDeadException(BaseException):
 class Connector(object):
     def __init__(self, host=HOST, port=PORT):
         self.host = host
-        self.port = port
+        self.port = int(port)
         self.send_queue = None
         self.send_thread = None
         self.receive_queue = None
@@ -171,19 +171,15 @@ class Reciever(threading.Thread):
                 s.connect(p_tup)
                 message = s.recv(RECV_LENGTH)
                 if message:
-                    decoded = message.decode()
-                    self.message_queue.put(decoded)
-                self.log_received(message)
+                    self.message_queue.put(message)
+                    self.log_received(message)
                 self.failed_connections = 0
             except ConnectionRefusedError as e:
                 print('Reciever connection refused...')
                 self.failed_connections += 1
-                if self.failed_connections > RECV_ATTEMPTS:
+                if failed_connections > RECV_ATTEMPTS:
                     raise
                 time.sleep(1)
-            except ConnectionResetError as e:
-                print(e)
-                break
             finally:
                 s.close()
 
@@ -216,12 +212,8 @@ class Sender(threading.Thread):
                 try:
                     conn, addr = self.sock.accept()
                     message = self.send_queue.get()
-                    encoded = message.encode()
-                    conn.send(encoded)
+                    conn.send(message)
                     self.log_sent(message)
-                except OSError as e:
-                    raise
-                    print(e)
                 finally:
                     conn.close()
 
