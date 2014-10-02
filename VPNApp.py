@@ -133,7 +133,10 @@ class VPNApp(Frame):
         # need port and host params for Connector constructor
         host = self.ip_addr_entry.get()
         port = self.port_entry.get()
-        self.connector = connector.Connector(host, port)
+        if (len(port) > 0):
+            self.connector = connector.Connector(host, port)
+        else:
+            self.connector = connector.Connector(host)
         self.connector.connect()
 
         # Generate a 16 byte key, from a hash of the shared secret value.
@@ -164,7 +167,7 @@ class VPNApp(Frame):
         server_transport = (0,0)
         
         self.session_key = session_key
-        print(session_key)
+        print("session key: " + session_key)
     
         return     
 
