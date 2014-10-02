@@ -167,7 +167,7 @@ class VPNApp(Frame):
         server_transport = (0,0)
         
         self.session_key = session_key
-        print("session key: " + session_key)
+        print("session key: {}".format(session_key))
     
         return     
 
