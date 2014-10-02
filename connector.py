@@ -181,6 +181,9 @@ class Reciever(threading.Thread):
                 if self.failed_connections > RECV_ATTEMPTS:
                     raise
                 time.sleep(1)
+            except OSError:
+                print('Attemped to connect to {}'.format(p_tup))
+                raise
             finally:
                 s.close()
 
