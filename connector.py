@@ -28,12 +28,16 @@ class Connector(object):
         self.receive_queue = None
         self.receive_thread = None
 
+    def wait_for_connection(self):
+        self.send_queue, st = setup_sender(host='localhost', port=self.port)
+        self.send_queue.put('CONNECT')
+
     def connect(self):
         """
         Establish a connection between two VPN instances
         """
         if not self.is_alive():
-            self.send_queue, st = setup_sender(host='localhost', port=self.port)
+            self.send_queue, st = setup_sender(host=self.host, port=self.port)
             self.receive_queue, rt = setup_receiver(port=self.port)
             self.send_thread = st
             self.receive_thread = rt
@@ -44,7 +48,7 @@ class Connector(object):
         Raises:
             ConnectionDeadException if connection has failed
         """
-        self.assert_alive() # could use decorator
+        # self.assert_alive() # could use decorator
         self.send_queue.put(message)
 
     def receive(self):
@@ -56,7 +60,7 @@ class Connector(object):
         Raises:
             ConnectionDeadException if connection has failed
         """
-        self.assert_alive() # could use decorator
+        # self.assert_alive() # could use decorator
         if not self.receive_queue.empty():
             return self.receive_queue.get()
         else:
