@@ -150,22 +150,22 @@ class VPNApp(Frame):
         session_key = []
         if self.is_client:
             #Client DH exchange            
-            client_transport = dh.gen_public_transport(True, long_term_key)
-            self.connector.send(bytes(client_transport[dh.PUB_TRANSPORT_IDX]))
-            server_transport_encrypted = self.connector.receive_wait()
-            session_key = dh.gen_session_key(server_transport_encrypted, client_transport[dh.LOC_EXPONENT_IDX], True, long_term_key)
+            client_dh_tup = dh.gen_public_transport(True, long_term_key)
+            self.connector.send(bytes(client_dh_tup[dh.PUB_TRANSPORT_IDX]))
+            server_dh_tup_encrypted = self.connector.receive_wait()
+            session_key = dh.gen_session_key(server_dh_tup_encrypted, client_dh_tup[dh.LOC_EXPONENT_IDX], True, long_term_key)
             
         else:
             #Server DH exchange        
-            server_transport = dh.gen_public_transport(True, long_term_key)
-            self.connector.send(bytes(server_transport[dh.PUB_TRANSPORT_IDX]))
-            client_transport_encrypted = self.connector.receive_wait()
-            session_key = dh.gen_session_key(client_transport_encrypted, server_transport[dh.PUB_TRANSPORT_IDX], True, long_term_key)
+            server_dh_tup = dh.gen_public_transport(True, long_term_key)
+            self.connector.send(bytes(server_dh_tup[dh.PUB_TRANSPORT_IDX]))
+            client_dh_tup_encrypted = self.connector.receive_wait()
+            session_key = dh.gen_session_key(client_dh_tup_encrypted, server_dh_tup[dh.PUB_TRANSPORT_IDX], True, long_term_key)
     
         # Enforce Perfect Forward Security by forgetting local exponent 
-        client_transport = (0,0)
-        server_transport = (0,0)
-        
+        client_dh_tup = (0,0)
+        server_dh_tup = (0,0)
+
         self.session_key = session_key
         print("session key: {}".format(session_key))
     
