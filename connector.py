@@ -15,6 +15,7 @@ SOCKET_TIMEOUT = 30.0
 
 RECV_LENGTH = 1024
 RECV_ATTEMPTS = 16
+CONNECTED_MSG = 'CONNECTED'
 
 class ConnectionDeadException(BaseException):
     pass
@@ -29,8 +30,15 @@ class Connector(object):
         self.receive_thread = None
 
     def wait_for_connection(self):
-        self.send_queue, st = setup_sender(host='localhost', port=self.port)
-        self.send_queue.put('CONNECT')
+        self.receive_queue, rt = setup_receiver(port=self.port)
+        raw_msg = self.receive_wait()
+        msg = raw_msg.decode()
+        self.host = msg
+        print('Connection from {}'.format(msg))
+        self.send_queue, st = setup_sender(host=self.host, port=self.port)
+        self.send(CONNECTED_MSG)
+        self.send_thread = st
+        self.receive_thread = rt
 
     def connect(self):
         """
@@ -38,9 +46,18 @@ class Connector(object):
         """
         if not self.is_alive():
             self.send_queue, st = setup_sender(host=self.host, port=self.port)
+            ip = socket.gethostbyname(socket.gethostname())
+            encoded_ip = ip.encode()
+            self.send_queue.put(encoded_ip)
+            time.sleep(5)
             self.receive_queue, rt = setup_receiver(port=self.port)
             self.send_thread = st
             self.receive_thread = rt
+
+            msg = self.receive_wait()
+            code = msg.decode()
+            assert(code == CONNECTED_MSG)
+            print('Connected to {}'.format(self.host))
 
     def send(self, message):
         """

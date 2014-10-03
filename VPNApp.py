@@ -133,11 +133,10 @@ class VPNApp(Frame):
         # need port and host params for Connector constructor
         host = self.ip_addr_entry.get()
         port = self.port_entry.get()
-        if (len(port) > 0):
+        if port:
             self.connector = connector.Connector(host, port)
         else:
             self.connector = connector.Connector(host)
-        self.connector.connect()
 
         # Generate a 16 byte key, from a hash of the shared secret value.
         # Then use that value, to encrypt a Diffie-Hellman exchange to 
@@ -150,6 +149,7 @@ class VPNApp(Frame):
         session_key = []
         if self.is_client:
             #Client DH exchange            
+            self.connector.connect()
             client_dh_tup = dh.gen_public_transport(True, long_term_key)
             self.connector.send(bytes(client_dh_tup[dh.PUB_TRANSPORT_IDX]))
             server_dh_tup_encrypted = self.connector.receive_wait()
@@ -157,6 +157,7 @@ class VPNApp(Frame):
             
         else:
             #Server DH exchange        
+            self.connector.wait_for_connection()
             server_dh_tup = dh.gen_public_transport(True, long_term_key)
             self.connector.send(bytes(server_dh_tup[dh.PUB_TRANSPORT_IDX]))
             client_dh_tup_encrypted = self.connector.receive_wait()
