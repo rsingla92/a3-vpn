@@ -33,7 +33,7 @@ class Connector(object):
         Establish a connection between two VPN instances
         """
         if not self.is_alive():
-            self.send_queue, st = setup_sender(host='', port=self.port)
+            self.send_queue, st = setup_sender(host='localhost', port=self.port)
             self.receive_queue, rt = setup_receiver(port=self.port)
             self.send_thread = st
             self.receive_thread = rt
@@ -182,7 +182,7 @@ class Reciever(threading.Thread):
                     raise
                 time.sleep(1)
             except OSError:
-                print('Attemped to connect to {}'.format(p_tup))
+                print('Attempted to connect to {}'.format(p_tup))
                 raise
             finally:
                 s.close()
