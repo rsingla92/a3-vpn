@@ -39,12 +39,13 @@ class Connector(object):
             self.send_queue = queue.Queue()
             sock = _get_socket()
             if self.server:
-                sock.bind((socket.gethostname(), self.port))
+                sock.bind(('172.16.0.11', self.port))
+                print("Host name: ", socket.gethostname())
                 sock.listen(1)
                 clientsocket, addr = sock.accept()
                 print('Connected to {}'.format(addr))
-                self.receive_thread = Receiver(sock, self.host, self.port, self.receive_queue)
-                self.send_thread = Sender(sock, self.host, self.port, self.send_queue)
+                self.receive_thread = Receiver(clientsocket, self.host, self.port, self.receive_queue)
+                self.send_thread = Sender(clientsocket, self.host, self.port, self.send_queue)
                 self.receive_thread.daemon, self.send_thread.daemon = 1, 1
                 self.send_thread.start()
                 self.receive_thread.start()
@@ -153,18 +154,13 @@ class Receiver(threading.Thread):
         logger.info(to_log)
 
     def run(self):
-        try:
-            while self.cont:
-                message = self.sock.recv(RECV_LENGTH)
-                if message:
-                    self.message_queue.put(message)
-                    self.log_received(message)
-                self.failed_connections = 0
-        except OSError:
-            print('Attempted to connect to host {} and port {}'.format(self.host, self.port))
-            raise
-        finally:
-            self.sock.close()
+        while self.cont:
+            message = self.sock.recv(RECV_LENGTH)
+            if message:
+                self.message_queue.put(message)
+                self.log_received(message)
+            self.failed_connections = 0
+        self.sock.close()
 
     def close(self):
         self.cont = False
@@ -192,13 +188,10 @@ class Sender(threading.Thread):
     def run(self):
         while self.cont:
             if not self.send_queue.empty():
-                try:
-                    message = self.send_queue.get()
-                    self.sock.send(message)
-                    self.log_sent(message)
-                finally:
-                    self.sock.close()
+                message = self.send_queue.get()
+                self.sock.send(message)
+                self.log_sent(message)
+        self.sock.close()
 
     def close(self):
-        self.sock.close()
         self.cont = False
