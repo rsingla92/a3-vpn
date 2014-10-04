@@ -161,7 +161,7 @@ class VPNApp(Frame):
             server_dh_tup = dh.gen_public_transport(True, long_term_key)
             self.connector.send(bytes(server_dh_tup[dh.PUB_TRANSPORT_IDX]))
             client_dh_tup_encrypted = self.connector.receive_wait()
-            session_key = dh.gen_session_key(client_dh_tup_encrypted, server_dh_tup[dh.PUB_TRANSPORT_IDX], True, long_term_key)
+            session_key = dh.gen_session_key(client_dh_tup_encrypted, server_dh_tup[dh.LOC_EXPONENT_IDX], True, long_term_key)
     
         # Enforce Perfect Forward Security by forgetting local exponent 
         client_dh_tup = (0,0)
