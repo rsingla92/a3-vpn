@@ -15,7 +15,6 @@ SOCKET_TIMEOUT = 30.0
 
 RECV_LENGTH = 1024
 RECV_ATTEMPTS = 16
-CONNECTED_MSG = 'CONNECTED'
 
 class ConnectionDeadException(BaseException):
     pass
@@ -38,17 +37,13 @@ class Connector(object):
             self.receive_queue = queue.Queue()
             self.send_queue = queue.Queue()
             sock = _get_socket()
+            clientsocket = None
             if self.server:
                 ip = socket.gethostbyname(socket.gethostname())
                 sock.bind((ip, self.port))
                 sock.listen(1)
                 clientsocket, addr = sock.accept()
                 print('Connected to {}'.format(addr))
-                self.receive_thread = Receiver(clientsocket, self.host, self.port, self.receive_queue)
-                self.send_thread = Sender(clientsocket, self.host, self.port, self.send_queue)
-                self.receive_thread.daemon, self.send_thread.daemon = 1, 1
-                self.send_thread.start()
-                self.receive_thread.start()
             else:
                 failed_connections = 0
                 while 1:
@@ -64,11 +59,12 @@ class Connector(object):
                     except OSError:
                         print('Attempted to connect to host {} and port {}'.format(self.host, self.port))
                         raise
-                self.receive_thread = Receiver(sock, self.host, self.port, self.receive_queue)
-                self.send_thread = Sender(sock, self.host, self.port, self.send_queue)
-                self.receive_thread.daemon, self.send_thread.daemon = 1, 1
-                self.send_thread.start()
-                self.receive_thread.start()
+                clientsocket = sock
+            self.receive_thread = Receiver(clientsocket, self.host, self.port, self.receive_queue)
+            self.send_thread = Sender(clientsocket, self.host, self.port, self.send_queue)
+            self.receive_thread.daemon, self.send_thread.daemon = 1, 1
+            self.send_thread.start()
+            self.receive_thread.start()
 
     def send(self, message):
         """
