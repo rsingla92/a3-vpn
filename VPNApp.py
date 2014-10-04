@@ -7,7 +7,7 @@ import hashlib
 
 import dh
 import aes
-import connector
+import connector2
 
 class WidgetLogger(logging.Handler):
     """TkInter text widget to setup logging"""
@@ -134,9 +134,9 @@ class VPNApp(Frame):
         host = self.ip_addr_entry.get()
         port = self.port_entry.get()
         if port:
-            self.connector = connector.Connector(host, port)
+            self.connector = connector2.Connector(not self.is_client, host, port)
         else:
-            self.connector = connector.Connector(host)
+            self.connector = connector2.Connector(not self.is_client, host)
 
         # Generate a 16 byte key, from a hash of the shared secret value.
         # Then use that value, to encrypt a Diffie-Hellman exchange to 
@@ -157,7 +157,7 @@ class VPNApp(Frame):
             
         else:
             #Server DH exchange        
-            self.connector.wait_for_connection()
+            self.connector.connect()
             server_dh_tup = dh.gen_public_transport(True, long_term_key)
             self.connector.send(bytes(server_dh_tup[dh.PUB_TRANSPORT_IDX]))
             client_dh_tup_encrypted = self.connector.receive_wait()
