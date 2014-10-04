@@ -112,6 +112,7 @@ def _get_socket():
 def _server_connect(sock, port):
     ip = socket.gethostbyname(socket.gethostname())
     sock.bind((ip, port))
+    logging.getLogger().info('Waiting for connection...')
     sock.listen(1)
     clientsocket, addr = sock.accept()
     print('Connected to {}'.format(addr))

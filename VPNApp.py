@@ -123,7 +123,7 @@ class VPNApp(Frame):
 
         self.shared_value_label = Label(self,text="Shared Secret Value")
         self.shared_value_label.grid(row=8, column=0)
-        self.shared_value_entry = Entry(self)
+        self.shared_value_entry = Entry(self, show="*")
         self.shared_value_entry.grid(row=8, column=1)
 
         self.send_label = Label(self, text="Data to be Sent")
