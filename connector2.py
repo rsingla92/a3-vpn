@@ -11,7 +11,6 @@ import logging
 # Any host on the machine will work
 HOST = ''
 PORT = 50002
-SOCKET_TIMEOUT = 30.0
 
 RECV_LENGTH = 1024
 RECV_ATTEMPTS = 16
@@ -37,29 +36,11 @@ class Connector(object):
             self.receive_queue = queue.Queue()
             self.send_queue = queue.Queue()
             sock = _get_socket()
-            clientsocket = None
+            clientsocket = sock
             if self.server:
-                ip = socket.gethostbyname(socket.gethostname())
-                sock.bind((ip, self.port))
-                sock.listen(1)
-                clientsocket, addr = sock.accept()
-                print('Connected to {}'.format(addr))
+                clientsocket = _server_connect(sock, self.port)
             else:
-                failed_connections = 0
-                while 1:
-                    try:
-                        sock.connect((self.host, self.port))
-                        break
-                    except ConnectionRefusedError as e:
-                        print('Receiver connection refused...')
-                        failed_connections += 1
-                        if failed_connections > RECV_ATTEMPTS:
-                            raise
-                        time.sleep(1)
-                    except OSError:
-                        print('Attempted to connect to host {} and port {}'.format(self.host, self.port))
-                        raise
-                clientsocket = sock
+                _client_connect(sock, self.host, self.port)
             self.receive_thread = Receiver(clientsocket, self.host, self.port, self.receive_queue)
             self.send_thread = Sender(clientsocket, self.host, self.port, self.send_queue)
             self.receive_thread.daemon, self.send_thread.daemon = 1, 1
@@ -128,6 +109,30 @@ def _get_socket():
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     return sock
 
+def _server_connect(sock, port):
+    ip = socket.gethostbyname(socket.gethostname())
+    sock.bind((ip, port))
+    sock.listen(1)
+    clientsocket, addr = sock.accept()
+    print('Connected to {}'.format(addr))
+    return clientsocket
+
+def _client_connect(sock, host, port):
+    failed_connections = 0
+    while 1:
+        try:
+            sock.connect((host, port))
+            break
+        except ConnectionRefusedError as e:
+            print('Receiver connection refused...')
+            failed_connections += 1
+            if failed_connections > RECV_ATTEMPTS:
+                raise
+            time.sleep(1)
+        except OSError:
+            print('Attempted to connect to host {} and port {}'.format(host, port))
+            raise
+
 class Receiver(threading.Thread):
     """
     Server class, receives messages on a socket and puts them in a queue
@@ -146,7 +151,7 @@ class Receiver(threading.Thread):
 
     def log_received(self, message):
         logger = logging.getLogger()
-        to_log = "Recieved: {}".format(message)
+        to_log = "Received: {}".format(message)
         logger.info(to_log)
 
     def run(self):
