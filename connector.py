@@ -11,53 +11,41 @@ import logging
 # Any host on the machine will work
 HOST = ''
 PORT = 50002
-SOCKET_TIMEOUT = 30.0
 
 RECV_LENGTH = 1024
 RECV_ATTEMPTS = 16
-CONNECTED_MSG = 'CONNECTED'
 
 class ConnectionDeadException(BaseException):
     pass
 
 class Connector(object):
-    def __init__(self, host=HOST, port=PORT):
+    def __init__(self, server=False, host=HOST, port=PORT):
         self.host = host
         self.port = int(port)
+        self.server = server
         self.send_queue = None
         self.send_thread = None
         self.receive_queue = None
         self.receive_thread = None
-
-    def wait_for_connection(self):
-        self.receive_queue, rt = setup_receiver(port=self.port)
-        raw_msg = self.receive_wait()
-        msg = raw_msg.decode()
-        self.host = msg
-        print('Connection from {}'.format(msg))
-        self.send_queue, st = setup_sender(host=self.host, port=self.port)
-        self.send(CONNECTED_MSG)
-        self.send_thread = st
-        self.receive_thread = rt
 
     def connect(self):
         """
         Establish a connection between two VPN instances
         """
         if not self.is_alive():
-            self.send_queue, st = setup_sender(host=self.host, port=self.port)
-            ip = socket.gethostbyname(socket.gethostname())
-            encoded_ip = ip.encode()
-            self.send_queue.put(encoded_ip)
-            time.sleep(5)
-            self.receive_queue, rt = setup_receiver(port=self.port)
-            self.send_thread = st
-            self.receive_thread = rt
-
-            msg = self.receive_wait()
-            code = msg.decode()
-            assert(code == CONNECTED_MSG)
-            print('Connected to {}'.format(self.host))
+            self.receive_queue = queue.Queue()
+            self.send_queue = queue.Queue()
+            sock = _get_socket()
+            clientsocket = sock
+            if self.server:
+                clientsocket = _server_connect(sock, self.port)
+            else:
+                _client_connect(sock, self.host, self.port)
+            self.receive_thread = Receiver(clientsocket, self.host, self.port, self.receive_queue)
+            self.send_thread = Sender(clientsocket, self.host, self.port, self.send_queue)
+            self.receive_thread.daemon, self.send_thread.daemon = 1, 1
+            self.send_thread.start()
+            self.receive_thread.start()
 
     def send(self, message):
         """
@@ -115,98 +103,66 @@ class Connector(object):
     def __del__(self):
         self.close()
 
-def setup_receiver(port=PORT):
-    """
-    Starts the VPN server
-    Returns:
-        queue which will be populated with incoming messages,
-        process
-    Note:
-        rases a socket.timeout exception if a connection cannot be made
-        quickly enough
-    """
-    return _setup(host=HOST, port=port, server=True)
-
-def setup_sender(host=HOST, port=PORT):
-    """
-    Starts the VPN client
-    Returns:
-        queue which messages will be sent from,
-        process
-    Note:
-        rases a socket.timeout exception if a connection cannot be made
-        quickly enough
-    """
-    return _setup(host=host, port=port, server=False)
-
-def _setup(host, port, server=True):
-    """
-    Sets up and starts Client/Server processes
-    Returns queue and process
-    """
-    print("Host ip addr:")
-    ip = socket.gethostbyname(socket.gethostname())
-    print(ip, "\n")
-
-    # socket.setdefaulttimeout(SOCKET_TIMEOUT)
-    sock = _get_socket()
-
-    message_queue = queue.Queue()
-    thread_class = Reciever if server else Sender
-    t = thread_class(sock, host, port, message_queue)
-
-    # Setting this means the thread (t) will get killed when the program exits
-    # Note that they don't get cleaned up, but it shouldn't be an issue
-    t.daemon = 1
-    t.start()
-    return message_queue, t
-
 def _get_socket():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # this lets us use the same port for multiple sockets
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     return sock
 
-class Reciever(threading.Thread):
+def _server_connect(sock, port):
+    ip = socket.gethostbyname(socket.gethostname())
+    sock.bind((ip, port))
+    logging.getLogger().info('Waiting for connection...')
+    sock.listen(1)
+    clientsocket, addr = sock.accept()
+    print('Connected to {}'.format(addr))
+    return clientsocket
+
+def _client_connect(sock, host, port):
+    failed_connections = 0
+    while 1:
+        try:
+            sock.connect((host, port))
+            break
+        except ConnectionRefusedError as e:
+            print('Receiver connection refused...')
+            failed_connections += 1
+            if failed_connections > RECV_ATTEMPTS:
+                raise
+            time.sleep(1)
+        except OSError:
+            print('Attempted to connect to host {} and port {}'.format(host, port))
+            raise
+
+class Receiver(threading.Thread):
     """
     Server class, receives messages on a socket and puts them in a queue
     """
     def __init__(self, sock, host, port, message_queue):
         threading.Thread.__init__(self)
-        self.message_queue = message_queue
+        if sock is None:
+            self.sock = _get_socket()
+        else:
+            self.sock = sock
         self.host = host
         self.port = port
+        self.message_queue = message_queue
         self.failed_connections = 0
         self.cont = True
 
     def log_received(self, message):
         logger = logging.getLogger()
-        to_log = "Recieved: {}".format(message)
+        to_log = "Received: {}".format(message)
         logger.info(to_log)
 
     def run(self):
-        p_tup = (self.host, self.port)
         while self.cont:
-            try:
-                s = _get_socket()
-                print(self.host)
-                s.connect(p_tup)
-                message = s.recv(RECV_LENGTH)
-                if message:
-                    self.message_queue.put(message)
-                    self.log_received(message)
-                self.failed_connections = 0
-            except ConnectionRefusedError as e:
-                print('Reciever connection refused...')
-                self.failed_connections += 1
-                if self.failed_connections > RECV_ATTEMPTS:
-                    raise
-                time.sleep(1)
-            except OSError:
-                print('Attempted to connect to {}'.format(p_tup))
-                raise
-            finally:
-                s.close()
+            message = self.sock.recv(RECV_LENGTH)
+            if message:
+                self.message_queue.put(message)
+                self.log_received(message)
+            self.failed_connections = 0
+        self.sock.close()
 
     def close(self):
         self.cont = False
@@ -217,7 +173,10 @@ class Sender(threading.Thread):
     """
     def __init__(self, sock, host, port, send_queue):
         threading.Thread.__init__(self)
-        self.sock = sock
+        if sock is None:
+            self.sock = _get_socket()
+        else:
+            self.sock = sock
         self.send_queue = send_queue
         self.host = host
         self.port = port
@@ -229,19 +188,12 @@ class Sender(threading.Thread):
         logger.info(to_log)
 
     def run(self):
-        p_tup = (self.host, self.port)
-        self.sock.bind(p_tup)
-        self.sock.listen(5)
         while self.cont:
             if not self.send_queue.empty():
-                try:
-                    conn, addr = self.sock.accept()
-                    message = self.send_queue.get()
-                    conn.send(message)
-                    self.log_sent(message)
-                finally:
-                    conn.close()
+                message = self.send_queue.get()
+                self.sock.send(message)
+                self.log_sent(message)
+        self.sock.close()
 
     def close(self):
-        self.sock.close()
         self.cont = False

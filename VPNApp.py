@@ -7,7 +7,7 @@ import hashlib
 
 import dh
 import aes
-import connector2
+import connector
 from multiprocessing.pool import ThreadPool
 
 # States of the connection
@@ -162,9 +162,9 @@ def connect(host, port, shared_value, is_server):
     # need port and host params for Connector constructor
     connector = None
     if port:
-        connector = connector2.Connector(is_server, host, port)
+        connector = connector.Connector(is_server, host, port)
     else:
-        connector = connector2.Connector(is_server, host)
+        connector = connector.Connector(is_server, host)
 
     # Generate a 16 byte key, from a hash of the shared secret value.
     # Then use that value, to encrypt a Diffie-Hellman exchange to 
