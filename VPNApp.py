@@ -165,8 +165,8 @@ class VPNApp(Frame):
         if self.connector is None:
             return
         encrypted = self.connector.receive()
-        print(encrypted)
         if encrypted:
+            print(encrypted)
             msg_bytes = aes.aes_decrypt(encrypted, self.session_key)
             message = bytes(msg_bytes)
             print(message)
