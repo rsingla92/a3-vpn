@@ -1,3 +1,18 @@
+Skip to content
+ This repository
+Explore
+Gist
+Blog
+Help
+Jorden Hetherington jordenh
+ 
+4  Unwatch 
+  Star 0
+ Fork 0rsingla92/a3-vpn
+ branch: master  a3-vpn / VPNApp.py
+Gord Larsongnarph 11 minutes ago avoid printing None all the time
+4 contributors Gord LarsonJorden Hetheringtonlordy1992Ricky Singla
+Executable File  243 lines (195 sloc)  8.236 kb RawBlameHistory   
 #!/usr/bin/env python3
 from tkinter import *
 import logging
@@ -8,6 +23,12 @@ import hashlib
 import dh
 import aes
 import connector
+from multiprocessing.pool import ThreadPool
+
+# States of the connection
+DISCONNECTED, CONNECTING, CONNECTED = 0, 1, 2
+
+pool = ThreadPool(processes=1)
 
 class WidgetLogger(logging.Handler):
     """TkInter text widget to setup logging"""
@@ -37,6 +58,8 @@ class VPNApp(Frame):
 
         self.is_client = True
         self.connector = None
+        self.connect_result = None
+        self.state = DISCONNECTED
 
         # Use the GridManager
         self.setup_grid()
@@ -78,8 +101,8 @@ class VPNApp(Frame):
         continue_button = Button(self, text="Continue", command=self.continue_callback)
         continue_button.grid(row=9, column=2)
 
-        self.quit_button = Button(self, text="Quit", command=self.quit_mode)
-        self.quit_button.grid(row=11, column=4)
+        # self.quit_button = Button(self, text="Quit", command=self.quit_mode)
+        # self.quit_button.grid(row=11, column=4)
 
         self.help_button = Button(self, text="Help", command=self.help_callback)
         self.help_button.grid(row=11, column=0)
@@ -115,7 +138,7 @@ class VPNApp(Frame):
 
         self.shared_value_label = Label(self,text="Shared Secret Value")
         self.shared_value_label.grid(row=8, column=0)
-        self.shared_value_entry = Entry(self)
+        self.shared_value_entry = Entry(self, show="*")
         self.shared_value_entry.grid(row=8, column=1)
 
         self.send_label = Label(self, text="Data to be Sent")
@@ -129,51 +152,20 @@ class VPNApp(Frame):
         self.received_entry.grid(row=10, column=1)
 
     def connect_callback(self):
-        # TODO: get these from wherever they come from
-        # need port and host params for Connector constructor
-        host = self.ip_addr_entry.get()
-        port = self.port_entry.get()
-        if (len(port) > 0):
-            self.connector = connector.Connector(host, port)
+        if self.state == DISCONNECTED:
+            self.state = CONNECTING
+            arg_tuple = (self.ip_addr_entry.get(), self.port_entry.get(), 
+                self.shared_value_entry.get(), not self.is_client)
+            self.connect_result = pool.apply_async(connect, arg_tuple)
         else:
-            self.connector = connector.Connector(host)
-        self.connector.connect()
-
-        # Generate a 16 byte key, from a hash of the shared secret value.
-        # Then use that value, to encrypt a Diffie-Hellman exchange to 
-        # ensure Perfect Forward Secrecy.
-        shared_val = ''
-        md5_key = hashlib.md5()
-        shared_val = self.shared_value_entry.get().encode('utf-8')
-        md5_key.update(shared_val)
-        long_term_key = md5_key.digest()
-        
-        session_key = []
-        if self.is_client:
-            #Client DH exchange            
-            client_dh_tup = dh.gen_public_transport(True, long_term_key)
-            self.connector.send(bytes(client_dh_tup[dh.PUB_TRANSPORT_IDX]))
-            server_dh_tup_encrypted = self.connector.receive_wait()
-            session_key = dh.gen_session_key(server_dh_tup_encrypted, client_dh_tup[dh.LOC_EXPONENT_IDX], True, long_term_key)
-            
-        else:
-            #Server DH exchange        
-            server_dh_tup = dh.gen_public_transport(True, long_term_key)
-            self.connector.send(bytes(server_dh_tup[dh.PUB_TRANSPORT_IDX]))
-            client_dh_tup_encrypted = self.connector.receive_wait()
-            session_key = dh.gen_session_key(client_dh_tup_encrypted, server_dh_tup[dh.PUB_TRANSPORT_IDX], True, long_term_key)
-    
-        # Enforce Perfect Forward Security by forgetting local exponent 
-        client_dh_tup = (0,0)
-        server_dh_tup = (0,0)
-
-        self.session_key = session_key
-        print("session key: {}".format(session_key))
-    
-        return     
+            self.logger.info('Already connected.')
 
     def send_callback(self):
-        pass
+        to_send = self.send_entry.get()
+        if to_send and self.connector:
+            encrypted = aes.aes_encrypt(to_send, self.session_key)
+            encoded = bytes(encrypted)
+            self.connector.send(encoded)
 
     def continue_callback(self):
         pass
@@ -183,6 +175,69 @@ class VPNApp(Frame):
 
     def help_callback(self):
         pass
+
+    def receive(self):
+        if self.connector is None:
+            return
+        encrypted = self.connector.receive()
+        if encrypted:
+            print(encrypted)
+            msg_bytes = aes.aes_decrypt(encrypted, self.session_key)
+            message = bytes(msg_bytes)
+            print(message)
+            self.received_entry.delete(0, END)
+            self.received_entry.insert(0, message)
+
+def connect(host, port, shared_value, is_server):
+    # TODO: get these from wherever they come from
+    # need port and host params for Connector constructor
+    ctr = None
+    if port:
+        ctr = connector.Connector(is_server, host, port)
+    else:
+        ctr = connector.Connector(is_server, host)
+
+    # Generate a 16 byte key, from a hash of the shared secret value.
+    # Then use that value, to encrypt a Diffie-Hellman exchange to 
+    # ensure Perfect Forward Secrecy.
+    md5_key = hashlib.md5()
+    shared_val = shared_value.encode('utf-8')
+    md5_key.update(shared_val)
+    long_term_key = md5_key.digest()
+    
+    session_key = []
+    if not is_server:
+        #Client DH exchange            
+        ctr.connect()
+        client_dh_tup = dh.gen_public_transport(True, long_term_key)
+        ctr.send(bytes(client_dh_tup[dh.PUB_TRANSPORT_IDX]))
+        server_dh_tup_encrypted = ctr.receive_wait()
+        session_key = dh.gen_session_key(server_dh_tup_encrypted, client_dh_tup[dh.LOC_EXPONENT_IDX], True, long_term_key)
+        
+    else:
+        #Server DH exchange        
+        ctr.connect()
+        server_dh_tup = dh.gen_public_transport(True, long_term_key)
+        ctr.send(bytes(server_dh_tup[dh.PUB_TRANSPORT_IDX]))
+        client_dh_tup_encrypted = ctr.receive_wait()
+        session_key = dh.gen_session_key(client_dh_tup_encrypted, server_dh_tup[dh.LOC_EXPONENT_IDX], True, long_term_key)
+
+    # Enforce Perfect Forward Security by forgetting local exponent 
+    client_dh_tup = (0,0)
+    server_dh_tup = (0,0)
+
+    return (session_key, ctr)
+
+def task_loop(app, root):
+    if app.state == CONNECTING:
+        if app.connect_result.ready():
+             res = app.connect_result.get()
+             app.session_key = res[0]
+             app.connector = res[1] 
+             app.state = CONNECTED
+    elif app.state == CONNECTED:
+        app.receive()
+    root.after(500, task_loop, app, root)
 
 def main():
     #dh.run_test()
@@ -194,8 +249,11 @@ def main():
     # Create a calibration application using that root
     app = VPNApp(root)
 
+    root.after(500, task_loop, app, root)
     # Draw the window
     app.mainloop()
 
 if __name__ == '__main__':
     main()
+Status API Training Shop Blog About
+© 2014 GitHub, Inc. Terms Privacy Security Contact

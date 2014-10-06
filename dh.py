@@ -73,7 +73,7 @@ def gen_session_key(inc_pub_transport, local_exponent, encrypt_protocol=False, l
     unique session key (only known to client/server)
     '''
     if encrypt_protocol == True:
-        inc_pub_transport_bytes = aes.aes_decrypt(inc_pub_transport, long_term_key) #JHH This needs attention, as it comes back as a list of bytes
+        inc_pub_transport_bytes = aes.aes_decrypt(inc_pub_transport, long_term_key)
         inc_pub_transport = byteArrayToInt(inc_pub_transport_bytes)
     
     session_key = pow(inc_pub_transport, local_exponent, prime)
