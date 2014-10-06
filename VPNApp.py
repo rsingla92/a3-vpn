@@ -160,11 +160,11 @@ class VPNApp(Frame):
 def connect(host, port, shared_value, is_server):
     # TODO: get these from wherever they come from
     # need port and host params for Connector constructor
-    connector = None
+    ctr = None
     if port:
-        connector = connector.Connector(is_server, host, port)
+        ctr = connector.Connector(is_server, host, port)
     else:
-        connector = connector.Connector(is_server, host)
+        ctr = connector.Connector(is_server, host)
 
     # Generate a 16 byte key, from a hash of the shared secret value.
     # Then use that value, to encrypt a Diffie-Hellman exchange to 
@@ -177,25 +177,25 @@ def connect(host, port, shared_value, is_server):
     session_key = []
     if not is_server:
         #Client DH exchange            
-        connector.connect()
+        ctr.connect()
         client_dh_tup = dh.gen_public_transport(True, long_term_key)
-        connector.send(bytes(client_dh_tup[dh.PUB_TRANSPORT_IDX]))
-        server_dh_tup_encrypted = connector.receive_wait()
+        ctr.send(bytes(client_dh_tup[dh.PUB_TRANSPORT_IDX]))
+        server_dh_tup_encrypted = ctr.receive_wait()
         session_key = dh.gen_session_key(server_dh_tup_encrypted, client_dh_tup[dh.LOC_EXPONENT_IDX], True, long_term_key)
         
     else:
         #Server DH exchange        
-        connector.connect()
+        ctr.connect()
         server_dh_tup = dh.gen_public_transport(True, long_term_key)
-        connector.send(bytes(server_dh_tup[dh.PUB_TRANSPORT_IDX]))
-        client_dh_tup_encrypted = connector.receive_wait()
+        ctr.send(bytes(server_dh_tup[dh.PUB_TRANSPORT_IDX]))
+        client_dh_tup_encrypted = ctr.receive_wait()
         session_key = dh.gen_session_key(client_dh_tup_encrypted, server_dh_tup[dh.LOC_EXPONENT_IDX], True, long_term_key)
 
     # Enforce Perfect Forward Security by forgetting local exponent 
     client_dh_tup = (0,0)
     server_dh_tup = (0,0)
 
-    return (session_key, connector)
+    return (session_key, ctr)
 
 def task_loop(app, root):
     if app.state == CONNECTING:
