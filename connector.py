@@ -111,6 +111,7 @@ def _get_socket():
 
 def _server_connect(sock, port):
     ip = socket.gethostbyname(socket.gethostname())
+    print(ip)
     sock.bind((ip, port))
     logging.getLogger().info('Waiting for connection...')
     sock.listen(1)

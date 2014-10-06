@@ -86,8 +86,8 @@ class VPNApp(Frame):
         continue_button = Button(self, text="Continue", command=self.continue_callback)
         continue_button.grid(row=9, column=2)
 
-        self.quit_button = Button(self, text="Quit", command=self.quit_mode)
-        self.quit_button.grid(row=11, column=4)
+        # self.quit_button = Button(self, text="Quit", command=self.quit_mode)
+        # self.quit_button.grid(row=11, column=4)
 
         self.help_button = Button(self, text="Help", command=self.help_callback)
         self.help_button.grid(row=11, column=0)
