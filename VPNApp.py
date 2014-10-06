@@ -142,6 +142,7 @@ class VPNApp(Frame):
         # Generate a 16 byte key, from a hash of the shared secret value.
         # Then use that value, to encrypt a Diffie-Hellman exchange to 
         # ensure Perfect Forward Secrecy.
+        shared_val = ''
         md5_key = hashlib.md5()
         shared_val = self.shared_value_entry.get().encode('utf-8')
         md5_key.update(shared_val)
