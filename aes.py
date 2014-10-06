@@ -418,7 +418,5 @@ def aes_decrypt(dat, key):
         block = aes_singleblock_inverse(dat[i:i+16], ekey)
         plaintext += [x ^ y for (x,y) in zip(block, dat[i-16:i])]
     pos = len(plaintext)-1
-    while plaintext[pos] != 0x80:
-        pos -= 1
-    return plaintext[0:pos+1]
+    return [pt for pt in plaintext if pt != 0x80]
 
