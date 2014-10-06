@@ -171,7 +171,7 @@ class VPNApp(Frame):
             message = bytes(msg_bytes)
             print(message)
             self.received_entry.delete(0, END)
-            self.received_entry.insert(0, message.decode())
+            self.received_entry.insert(0, message)
 
 def connect(host, port, shared_value, is_server):
     # TODO: get these from wherever they come from
