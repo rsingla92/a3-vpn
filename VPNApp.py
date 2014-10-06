@@ -165,10 +165,13 @@ class VPNApp(Frame):
         if not self.connector:
             return
         encrypted = self.connector.receive()
+        print(encrypted)
         if encrypted:
             msg_bytes = aes.aes_decrypt(encrypted, self.session_key)
             message = bytes(msg_bytes)
-            self.received_entry.set(message.decode())
+            print(message)
+            self.received_entry.delete(0, END)
+            self.received_entry.insert(0, message.decode())
 
 def connect(host, port, shared_value, is_server):
     # TODO: get these from wherever they come from
