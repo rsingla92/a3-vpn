@@ -159,6 +159,11 @@ class VPNApp(Frame):
     def help_callback(self):
         pass
 
+    def receive(self):
+        rcv = self.connector.receive()
+        if rcv:
+            self.received_entry.set(rcv)
+
 def connect(host, port, shared_value, is_server):
     # TODO: get these from wherever they come from
     # need port and host params for Connector constructor
@@ -198,11 +203,6 @@ def connect(host, port, shared_value, is_server):
     server_dh_tup = (0,0)
 
     return (session_key, ctr)
-
-    def receive(self):
-        rcv = self.connector.receive()
-        if rcv:
-            self.received_entry.set(rcv)
 
 def task_loop(app, root):
     if app.state == CONNECTING:
