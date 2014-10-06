@@ -162,7 +162,7 @@ class VPNApp(Frame):
         pass
 
     def receive(self):
-        if not self.connector:
+        if self.connector is None:
             return
         encrypted = self.connector.receive()
         print(encrypted)
@@ -220,9 +220,9 @@ def task_loop(app, root):
              app.session_key = res[0]
              app.connector = res[1] 
              app.state = CONNECTED
+    elif app.state == CONNECTED:
         app.receive()
-    if app.state != CONNECTED:
-        root.after(500, task_loop, app, root)
+    root.after(500, task_loop, app, root)
 
 def main():
     #dh.run_test()
