@@ -73,7 +73,7 @@ class Connector(object):
 
     def receive_wait(self):
         """
-        Waits until you receive somehthing, then return it
+        Waits until you receive something, then return it
         """
         rcv = None
         while rcv == None:
