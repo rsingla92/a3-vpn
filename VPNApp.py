@@ -147,7 +147,7 @@ class VPNApp(Frame):
 
     def send_callback(self):
         to_send = self.send_entry.get()
-        if to_send:
+        if to_send and self.connector:
             self.connector.send(to_send)
 
     def continue_callback(self):
@@ -160,6 +160,8 @@ class VPNApp(Frame):
         pass
 
     def receive(self):
+        if not self.connector:
+            return
         rcv = self.connector.receive()
         if rcv:
             self.received_entry.set(rcv)
