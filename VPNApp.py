@@ -148,7 +148,9 @@ class VPNApp(Frame):
     def send_callback(self):
         to_send = self.send_entry.get()
         if to_send and self.connector:
-            self.connector.send(to_send)
+            encrypted = aes.aes_encrypt(to_send, self.session_key)
+            encoded = encrypted.encode('UTF-8')
+            self.connector.send(encoded)
 
     def continue_callback(self):
         pass
@@ -162,9 +164,12 @@ class VPNApp(Frame):
     def receive(self):
         if not self.connector:
             return
-        rcv = self.connector.receive()
-        if rcv:
-            self.received_entry.set(rcv)
+        encrypted_encoded = self.connector.receive()
+        if encrypted_encoded:
+            encrypted = encrypted_encoded.decode('UTF-8')
+            msg_bytes = aes.aes_decrypt(encrypted, self.session_key)
+            message = msg_bytes.decode('UTF-8')
+            self.received_entry.set(message)
 
 def connect(host, port, shared_value, is_server):
     # TODO: get these from wherever they come from
