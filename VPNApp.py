@@ -1,18 +1,3 @@
-Skip to content
- This repository
-Explore
-Gist
-Blog
-Help
-Jorden Hetherington jordenh
- 
-4  Unwatch 
-  Star 0
- Fork 0rsingla92/a3-vpn
- branch: master  a3-vpn / VPNApp.py
-Gord Larsongnarph 11 minutes ago avoid printing None all the time
-4 contributors Gord LarsonJorden Hetheringtonlordy1992Ricky Singla
-Executable File  243 lines (195 sloc)  8.236 kb RawBlameHistory   
 #!/usr/bin/env python3
 from tkinter import *
 import logging
@@ -255,5 +240,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-Status API Training Shop Blog About
-© 2014 GitHub, Inc. Terms Privacy Security Contact
