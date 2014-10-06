@@ -146,7 +146,9 @@ class VPNApp(Frame):
             self.logger.info('Already connected.')
 
     def send_callback(self):
-        pass
+        to_send = self.send_entry.get()
+        if to_send:
+            self.connector.send(to_send)
 
     def continue_callback(self):
         pass
@@ -197,6 +199,11 @@ def connect(host, port, shared_value, is_server):
 
     return (session_key, ctr)
 
+    def receive(self):
+        rcv = self.connector.receive()
+        if rcv:
+            self.received_entry.set(rcv)
+
 def task_loop(app, root):
     if app.state == CONNECTING:
         if app.connect_result.ready():
@@ -204,6 +211,7 @@ def task_loop(app, root):
              app.session_key = res[0]
              app.connector = res[1] 
              app.state = CONNECTED
+        app.receive()
     if app.state != CONNECTED:
         root.after(500, task_loop, app, root)
 
