@@ -107,9 +107,13 @@ def gen_initial_client_auth_msg():
     Arguments:
     none
     
-    Returns: tuple(id of self - IP, 16 bytearray nonce)      
+    Returns: 20 bytes starting with 4: id of self - IP, 
+                      followed with 16: bytearray nonce      
     '''
-    return (connector.get_ip(), gen_nonce())
+    ip_array = [int(byte) for byte in connector.get_ip().split('.')]
+    nonce_array = [int(byte) for byte in gen_nonce()]
+    
+    return ip_array + nonce_array
 
 def intToByteArray(inputInt, forced_len=-1):
     '''
@@ -204,5 +208,11 @@ def run_test():
     return
   
 #run_test()
+
+#arr = connector.get_ip().split('.')
+#arr2 = [int(byte) for byte in connector.get_ip().split('.')]
+
+#print(str(arr2))
+#print(str(gen_initial_client_auth_msg()))
 
 
