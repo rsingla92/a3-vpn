@@ -109,6 +109,10 @@ def _get_socket():
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     return sock
 
+def get_ip():
+    ip = socket.gethostbyname(socket.gethostname())
+    return ip
+
 def _server_connect(sock, port):
     ip = socket.gethostbyname(socket.gethostname())
     print(ip)

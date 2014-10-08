@@ -12,6 +12,7 @@ debug = False
 
 import random
 import aes
+import connector
 
 PUB_TRANSPORT_IDX = 0
 LOC_EXPONENT_IDX = 1
@@ -23,7 +24,9 @@ prime = 0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBE
 #associated generator number - http://www.ietf.org/rfc/rfc3526.txt
 gen = 2
 
-def gen_public_transport(encrypt_protocol=False, long_term_key=0):
+
+
+def gen_public_transport(encrypt_protocol=False, long_term_key=0, use_id_and_nonce=False, nonce=[]):
     '''
     generates a tuple containing the data to pass to the other computer, 
     aka the public_transport, as well as the local-exponent which will
@@ -85,12 +88,36 @@ def gen_session_key(inc_pub_transport, local_exponent, encrypt_protocol=False, l
     
     return session_key
 
-def intToByteArray(inputInt):
+def gen_nonce():
+    '''
+    generates a nonce
+    
+    Arguments:
+    none
+    
+    Returns: 16 byte nonce represented in byte array.      
+    '''
+    return intToByteArray(random.getrandbits(128), 16)
+
+def gen_initial_client_auth_msg():
+    '''
+    generates a tuple containing the 1st of 3 messages to be sent in the 
+    Authenticated Diffie Hellmen exchange
+    
+    Arguments:
+    none
+    
+    Returns: tuple(id of self - IP, 16 bytearray nonce)      
+    '''
+    return (connector.get_ip(), gen_nonce())
+
+def intToByteArray(inputInt, forced_len=-1):
     '''
     converts arbitrarily long integer into array of bytes
     
     Arguments:
     inputInt - arbitrarily long int
+    forced_len - specify length of array, buffered with 0s by default
     
     Returns:
     bytearray representative of inputInt 
@@ -101,6 +128,16 @@ def intToByteArray(inputInt):
         int_bytes.append(inputInt % 256)
         inputInt = inputInt // 256        
         idx += 1
+        if forced_len > 0:
+            if len(int_bytes) >= forced_len:
+                break
+  
+    if forced_len > 0 and len(int_bytes) < forced_len:
+        while len(int_bytes) < forced_len:
+            int_bytes.insert(0, 0)
+    
+    #for byte in int_bytes:
+    #    print("byte: " + str(byte))        
     #print(str(int_bytes))
        
     return int_bytes
@@ -167,7 +204,5 @@ def run_test():
     return
   
 #run_test()
-
-
 
 
