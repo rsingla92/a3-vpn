@@ -7,11 +7,13 @@ import hashlib
 
 import dh
 import aes
+import mac
 import connector
 from multiprocessing.pool import ThreadPool
 
 # States of the connection
 DISCONNECTED, CONNECTING, CONNECTED = 0, 1, 2
+MAC_KEY = b'CHANGE THIS'
 
 pool = ThreadPool(processes=1)
 
@@ -150,7 +152,8 @@ class VPNApp(Frame):
         if to_send and self.connector:
             encrypted = aes.aes_encrypt(to_send, self.session_key)
             encoded = bytes(encrypted)
-            self.connector.send(encoded)
+            mac = mac.get_mac(to_send, MAC_KEY)
+            self.connector.send(encoded+mac)
 
     def continue_callback(self):
         pass
@@ -169,9 +172,11 @@ class VPNApp(Frame):
             print(encrypted)
             msg_bytes = aes.aes_decrypt(encrypted, self.session_key)
             message = bytes(msg_bytes)
-            print(message)
+            # Not 100% on taking out the last block of message
+            verified_message = mac.check_mac(message[:-16], encrypted, MAC_KEY)
+            print(verified_message)
             self.received_entry.delete(0, END)
-            self.received_entry.insert(0, message)
+            self.received_entry.insert(0, verified_message)
 
 def connect(host, port, shared_value, is_server):
     # TODO: get these from wherever they come from
