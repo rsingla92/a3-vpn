@@ -147,13 +147,6 @@ def gen_auth_msg(nonce_array = []):
     
     return list(ip_array) + list(nonce_array)
 
-def get_data_from_ini_client_msg():
-    
-    
-    
-    
-    pass
-
 def intToByteArray(inputInt, forced_len=-1):
     '''
     converts arbitrarily long integer into array of bytes
@@ -313,7 +306,7 @@ def run_test():
     print("*********************************************")
     client_id = client_init_msg[:4]
     client_nonce = client_init_msg[4:]
-    print("Bob recieved id: " + str(client_id) + ", and nonce: " + str(client_nonce)) 
+    print("Bob recieved id: " + str(client_id) + ", and nonce: " + str(client_nonce))
     # then generates a resonse
     server_nonce = gen_nonce()
     server_auth_msg = gen_auth_msg(client_nonce)
