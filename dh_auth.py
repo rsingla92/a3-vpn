@@ -42,19 +42,26 @@ def gen_public_transport(long_term_key, auth_arr):
     if debug:
         print("generating public transport data")
 
-    local_exponent = random.getrandbits(128)
-    if debug:
-        print("local_exponent: " + str(local_exponent))
+    local_exponent, pub_transport, pub_transport_arr = None, None, None
+    while True:
+        local_exponent = random.getrandbits(128)
+        if debug:
+            print("local_exponent: " + str(local_exponent))
 
-    pub_transport = pow(gen, local_exponent, prime)
-    if debug:
-        print("pub_transport:" + str(pub_transport))
+        pub_transport = pow(gen, local_exponent, prime)
+        if debug:
+            print("pub_transport:" + str(pub_transport))
 
-    # -pub_transport is an array of bytes, if encrypted
-    # -Encrypt the public_transport
-    # with the authorization_array (the ID and nonce) prepended to
-    # the transport data
-    pub_transport_arr = int_to_byte_array(pub_transport)
+        # -pub_transport is an array of bytes, if encrypted
+        # -Encrypt the public_transport
+        # with the authorization_array (the ID and nonce) prepended to
+        # the transport data
+        pub_transport_arr = int_to_byte_array(pub_transport)
+        if pub_transport_arr[-1] != 128:
+            # We are okay as long as the last byte is not the same as the padding byte
+            # for AES. Otherwise it will be stripped. If it is 128, continue generating
+            # local exponents until it is not.
+            break;
 
     pub_transport = list(auth_arr) + list(pub_transport_arr)
     print("generating public transport - public transport: " + str(pub_transport))
@@ -106,11 +113,15 @@ def gen_session_key(inc_pub_transport, local_exponent, long_term_key, auth_arr):
 
 def gen_nonce():
     """
-    generates a nonce
+    generates a nonce and prevents the last byte from being the padding bit used in
+    the aes encryption (128)
 
     Returns: 16 byte nonce represented in byte array.
     """
-    return list(int_to_byte_array(random.getrandbits(128), 16))
+    nonce = list(int_to_byte_array(random.getrandbits(128), 16))
+    while nonce[-1] == 128:
+        nonce[-1] = random.getrandbits(8)
+    return nonce
 
 def gen_auth_msg(nonce_array=[]):
     """
@@ -119,7 +130,8 @@ def gen_auth_msg(nonce_array=[]):
 
     Arguments:
     Optionally supply a nonce_array, which if supplied will be
-    used in the returned array, rather than generating a new one.
+    used in the returned array, rather than generating a new one. If you
+    supply a nonce, the last byte cannot be the padding character in aes, 128.
     Basically use this parameter to append the ID to the nonce.
 
     Returns: 20 bytes starting with 4: id of self - IP,
