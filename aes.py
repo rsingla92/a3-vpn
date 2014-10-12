@@ -398,6 +398,13 @@ def aes_encrypt(dat, key):
         ciphertext += aes_singleblock(block, ekey)
     return ciphertext
 
+def trim_padding_chars(plaintext):
+    while len(plaintext) > 0:
+        end_char = plaintext.pop()
+        if end_char != 128:
+            plaintext.append(end_char)
+            break
+
 def aes_decrypt(dat, key):
     """Performs the AES decryption algorithm for the given ciphertext and key, using CBC mode.
 
@@ -417,5 +424,6 @@ def aes_decrypt(dat, key):
     for i in range(16, len(dat), 16):
         block = aes_singleblock_inverse(dat[i:i+16], ekey)
         plaintext += [x ^ y for (x,y) in zip(block, dat[i-16:i])]
-    return [pt for pt in plaintext if pt != 0x80]
+    trim_padding_chars(plaintext)
+    return plaintext
 

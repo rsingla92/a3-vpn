@@ -12,7 +12,7 @@ import random
 import aes
 import connector
 
-debug = False
+debug = True
 
 PUB_TRANSPORT_IDX = 0
 LOC_EXPONENT_IDX = 1
@@ -146,7 +146,7 @@ def int_to_byte_array(input_int, forced_len=-1):
     idx = 0
     while input_int > 0:
         int_bytes.append(input_int % 256)
-        input_int //= 256
+        input_int = input_int // 256
         idx += 1
         if forced_len > 0:
             if len(int_bytes) >= forced_len:
@@ -154,12 +154,9 @@ def int_to_byte_array(input_int, forced_len=-1):
 
     if forced_len > 0 and len(int_bytes) < forced_len:
         while len(int_bytes) < forced_len:
-            int_bytes.insert(0, 0)
+            int_bytes.append(0)
 
-    #for byte in int_bytes:
-    #    print("byte: " + str(byte))
-    #print(str(int_bytes))
-
+    int_bytes.reverse()
     return int_bytes
 
 
@@ -174,12 +171,12 @@ def byte_array_to_int(int_bytes):
     arbitrarily long int
     """
     ret_int = 0
-
-    while len(int_bytes) > 0:
-        ret_int = ret_int*256 + int_bytes.pop()
+    place = 1
+    while(len(int_bytes) > 0):
+        ret_int += int_bytes.pop() * place
+        place *= 256
 
     return ret_int
-
 
 def run_test():
     #Jorden Testing:
