@@ -8,6 +8,7 @@ gen_session_key(inc_pub_transport, local_exponent, encrypt_protocol=False, long_
 -- used with the incoming transport data to generate a session key, only known
         locally, and to the computer that sent the transport data
 """
+from xmlrpc import server
 debug = False
 
 import random
@@ -26,7 +27,7 @@ gen = 2
 
 
 
-def gen_public_transport(encrypt_protocol=False, long_term_key=0, use_id_and_nonce=False, nonce=[]):
+def gen_public_transport(encrypt_protocol=False, long_term_key=0, auth_arr=[]):
     '''
     generates a tuple containing the data to pass to the other computer, 
     aka the public_transport, as well as the local-exponent which will
@@ -36,6 +37,9 @@ def gen_public_transport(encrypt_protocol=False, long_term_key=0, use_id_and_non
     encrypt_protocol - a bool, which if set to True,
     utilizes long_term_key to encrypt the data that comprises the public_transport
     long_term_key - key used in aes encryption
+    auth_arr - if present, is used as per the authentication DH scheme
+               that is, it's prepended to the proper public_transport
+               before encryption.
     
     Returns: tuple(public_transport, local_exponent)      
     '''
@@ -53,13 +57,26 @@ def gen_public_transport(encrypt_protocol=False, long_term_key=0, use_id_and_non
     if encrypt_protocol == False:
         return (pub_transport, local_exponent)
     else:
-        #pub_transport is an array of bytes
-        pub_transport = aes.aes_encrypt(intToByteArray(pub_transport), long_term_key)
-        if debug:
-            print("public_transport, encrypted: " + str(pub_transport))
-        return (pub_transport, local_exponent)
+        #pub_transport is an array of bytes, if encrypted
+        if not auth_arr:
+            pub_transport = aes.aes_encrypt(intToByteArray(pub_transport), long_term_key)
+            if debug:
+                print("public_transport, encrypted: " + str(pub_transport))
+            return (pub_transport, local_exponent)
+        else:
+            # If performing encrypted authorization, encrypt the public_transport
+            # with the authorization_array (the ID and nonce) prepended to 
+            # the transport data
+            print("Generating pub transport, with auth_arr")
+            pub_transport_arr = intToByteArray(pub_transport)
+                
+            pub_transport = list(auth_arr) + list(pub_transport_arr)
+            pub_transport = aes.aes_encrypt(pub_transport, long_term_key)
+            if debug:
+                print("public_transport, encrypted: " + str(pub_transport))
+            return (pub_transport, local_exponent)
 
-def gen_session_key(inc_pub_transport, local_exponent, encrypt_protocol=False, long_term_key=0):
+def gen_session_key(inc_pub_transport, local_exponent, encrypt_protocol=False, long_term_key=0, auth_arr=[]):
     '''
     generates a session key
     
@@ -71,12 +88,27 @@ def gen_session_key(inc_pub_transport, local_exponent, encrypt_protocol=False, l
     encrypt_protocol - Bool stating whether or not the inc_pub_transport needs
     to be decrypted before being used to generate the session_key.
     long_term_key - key used for aes decryption if encrypt_protocol set True
+    auth_arr - Present if performing authentication, therefore including 
+                     data/nonce in decryption data. This array is used 
+                     as comparison with the received array to authenticate.
     
     returns:
-    unique session key (only known to client/server)
+    unique session key (only known to client/server), or 0 if using auth_arr,
+    and data not authenticated
     '''
     if encrypt_protocol == True:
         inc_pub_transport_bytes = aes.aes_decrypt(inc_pub_transport, long_term_key)
+        
+        if auth_arr:
+            inc_auth_arr = inc_pub_transport_bytes[:20] 
+            for inc_byte,auth_byte in zip(inc_auth_arr, auth_arr):
+                if not inc_byte == auth_byte:
+                    print("Not authenticated.")
+                    return 0
+                
+            # reduce bytes to actual data
+            inc_pub_transport_bytes = inc_pub_transport_bytes[20:] 
+        
         inc_pub_transport = byteArrayToInt(inc_pub_transport_bytes)
     
     session_key = pow(inc_pub_transport, local_exponent, prime)
@@ -92,28 +124,35 @@ def gen_nonce():
     '''
     generates a nonce
     
-    Arguments:
-    none
-    
     Returns: 16 byte nonce represented in byte array.      
     '''
-    return intToByteArray(random.getrandbits(128), 16)
+    return list(intToByteArray(random.getrandbits(128), 16))
 
-def gen_initial_client_auth_msg():
+def gen_auth_msg(nonce_array = []):
     '''
     generates a tuple containing the 1st of 3 messages to be sent in the 
     Authenticated Diffie Hellmen exchange
     
     Arguments:
-    none
+    Optionally supply a nonce_array, which if supplied will be
+    used in the returned array, rather than generating a new one.
+    Basically use this parameter to append the ID to the nonce.
     
     Returns: 20 bytes starting with 4: id of self - IP, 
                       followed with 16: bytearray nonce      
     '''
     ip_array = [int(byte) for byte in connector.get_ip().split('.')]
-    nonce_array = [int(byte) for byte in gen_nonce()]
+    if not nonce_array:
+        nonce_array = [int(byte) for byte in gen_nonce()]
     
-    return ip_array + nonce_array
+    return list(ip_array) + list(nonce_array)
+
+def get_data_from_ini_client_msg():
+    
+    
+    
+    
+    pass
 
 def intToByteArray(inputInt, forced_len=-1):
     '''
@@ -205,9 +244,119 @@ def run_test():
         print("Test 3: Passed; temporary local-exponents used to generate session key have been destroyed \nPFS is in place.")
     else:
         print("Test 3: Failed; PFS failure. Investigate dh.py")
+        
+    '''    
+    print("***Starting Test 4***")
+    #Alice does this
+    client_init_msg = gen_auth_msg() # "Im Alice" - SEND THIS
+    client_init_msg[:4] = [1,1,1,1] #Override ID since just a basic test
+    
+    #Bob does this after recieving init_msg
+    print("*********************************************")
+    client_id = client_init_msg[:4]
+    client_nonce = client_init_msg[4:]
+    print("Bob recieved id: " + str(client_id) + ", and nonce: " + str(client_nonce)) 
+    # then generates a resonse
+    server_nonce = gen_nonce()
+    server_auth_msg = gen_auth_msg(client_nonce)
+    server_auth_msg[:4] = [2,2,2,2] #Override ID since just a basic test
+    print("Bob auth msg: " + str(server_auth_msg))
+    server_encrypted_msg =  gen_public_transport(True, long_term_key, server_auth_msg)
+    server_public_transport = server_nonce + server_encrypted_msg[PUB_TRANSPORT_IDX] # Bob SENDS THIS
+    print("Bob public transport: " + str(server_public_transport))
+    
+    #Alice then does this with the incoming transport
+    print("*********************************************")
+    rcv_server_nonce = server_public_transport[:16]
+    rcv_server_public_transport = server_public_transport[16:]
+    print("Alice rcv server nonce: " + str(rcv_server_nonce))
+    client_auth_msg = gen_auth_msg(rcv_server_nonce)
+    client_auth_msg[:4] = [1,1,1,1] #Override ID since just a basic test
+    print("Alice auth msg: " + str(client_auth_msg))
+    client_encrypted_msg = gen_public_transport(True, long_term_key, client_auth_msg)
+    client_public_transport = client_encrypted_msg[PUB_TRANSPORT_IDX] #Alice SENDS THIS
+ 
+    # Then each party authenticates and gets the DH public_transport data to compute
+    # the session key.
+    
+    # Bob does this:
+    print("*********************************************")
+    expected_auth_msg = client_id + server_nonce 
+    print("Bob expects auth msg: " + str(expected_auth_msg))
+    server_key = gen_session_key(client_public_transport, server_encrypted_msg[LOC_EXPONENT_IDX], True, long_term_key, expected_auth_msg)
+    print("Server session key: " + str(server_key))
+    #Alice does this:
+    # compare against Bob's ID and Alice's nonce:
+    print("*********************************************")
+    # BOB_ID = self.getIPFromTextBox - that's what alice actually cares about.
+    BOB_ID = [2,2,2,2] #[int(byte) for byte in connector.get_ip().split('.')] #TEMP - not correct code to be used. - should be as line above.
+    expected_auth_msg = BOB_ID + client_init_msg[4:]
+    print("Alice expects auth msg: " + str(expected_auth_msg))
+    client_key = gen_session_key(rcv_server_public_transport, client_encrypted_msg[LOC_EXPONENT_IDX], True, long_term_key, expected_auth_msg)
+    print("Client session key: " + str(client_key))
+    
+    if client_key == server_key:
+        print("Test 4 passed!! Yayy")
+    else:
+        print("Test 4 Failed. BOOOO :(")
+    ''' 
+    
+    
+    print("*********************************************")
+    print("*********************************************")
+    print("*********************************************")
+    print("Test 5")
+    #Alice does this
+    client_init_msg = gen_auth_msg() # "Im Alice" - SEND THIS
+    
+    #Bob does this after recieving init_msg
+    print("*********************************************")
+    client_id = client_init_msg[:4]
+    client_nonce = client_init_msg[4:]
+    print("Bob recieved id: " + str(client_id) + ", and nonce: " + str(client_nonce)) 
+    # then generates a resonse
+    server_nonce = gen_nonce()
+    server_auth_msg = gen_auth_msg(client_nonce)
+    print("Bob auth msg: " + str(server_auth_msg))
+    server_encrypted_msg =  gen_public_transport(True, long_term_key, server_auth_msg)
+    server_public_transport = server_nonce + server_encrypted_msg[PUB_TRANSPORT_IDX] # Bob SENDS THIS
+    print("Bob public transport: " + str(server_public_transport))
+    
+    #Alice then does this with the incoming transport
+    print("*********************************************")
+    rcv_server_nonce = server_public_transport[:16]
+    rcv_server_public_transport = server_public_transport[16:] 
+    client_auth_msg = gen_auth_msg(rcv_server_nonce)
+    client_encrypted_msg = gen_public_transport(True, long_term_key, client_auth_msg)
+    client_public_transport = client_encrypted_msg[PUB_TRANSPORT_IDX] #Alice SENDS THIS
+ 
+    # Then each party authenticates and gets the DH public_transport data to compute
+    # the session key.
+    
+    # Bob does this:
+    print("*********************************************")
+    expected_auth_msg = client_id + server_nonce 
+    print("Bob expects auth msg: " + str(expected_auth_msg))
+    server_key = gen_session_key(client_public_transport, server_encrypted_msg[LOC_EXPONENT_IDX], True, long_term_key, expected_auth_msg)
+    print("Server session key: " + str(server_key))
+    #Alice does this:
+    # compare against Bob's ID and Alice's nonce:
+    print("*********************************************")
+    # BOB_ID = self.getIPFromTextBox - that's what alice actually cares about.
+    BOB_ID = [int(byte) for byte in connector.get_ip().split('.')] #TEMP - not correct code to be used. - should be as line above.
+    expected_auth_msg = BOB_ID + client_init_msg[4:]
+    print("Alice expects auth msg: " + str(expected_auth_msg))
+    client_key = gen_session_key(rcv_server_public_transport, client_encrypted_msg[LOC_EXPONENT_IDX], True, long_term_key, expected_auth_msg)
+    print("Client session key: " + str(client_key))
+        
+    if client_key == server_key:
+        print("Test 5 passed!! Yayy")
+    else:
+        print("Test 5 Failed. BOOOO :(")
+    
     return
   
-#run_test()
+run_test()
 
 #arr = connector.get_ip().split('.')
 #arr2 = [int(byte) for byte in connector.get_ip().split('.')]
