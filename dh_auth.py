@@ -8,12 +8,11 @@ gen_session_key(inc_pub_transport, local_exponent, encrypt_protocol=False, long_
 -- used with the incoming transport data to generate a session key, only known
         locally, and to the computer that sent the transport data
 """
-from xmlrpc import server
-debug = False
-
 import random
 import aes
 import connector
+
+debug = False
 
 PUB_TRANSPORT_IDX = 0
 LOC_EXPONENT_IDX = 1
@@ -25,8 +24,9 @@ prime = 0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBE
 #associated generator number - http://www.ietf.org/rfc/rfc3526.txt
 gen = 2
 
+
 def gen_public_transport(long_term_key, auth_arr):
-    '''
+    """
     generates a tuple containing the data to pass to the other computer,
     aka the public_transport, as well as the local-exponent which will
     be required later on to generate the session-key.
@@ -38,7 +38,7 @@ def gen_public_transport(long_term_key, auth_arr):
                before encryption.
 
     Returns: tuple(public_transport, local_exponent)
-    '''
+    """
     if debug:
         print("generating public transport data")
 
@@ -54,17 +54,17 @@ def gen_public_transport(long_term_key, auth_arr):
     # -Encrypt the public_transport
     # with the authorization_array (the ID and nonce) prepended to
     # the transport data
-    pub_transport_arr = intToByteArray(pub_transport)
+    pub_transport_arr = int_to_byte_array(pub_transport)
 
     pub_transport = list(auth_arr) + list(pub_transport_arr)
     print("generating public transport - public transport: " + str(pub_transport))
     pub_transport = aes.aes_encrypt(pub_transport, long_term_key)
     if debug:
         print("public_transport, encrypted: " + str(pub_transport))
-    return (pub_transport, local_exponent)
+    return pub_transport, local_exponent
 
 def gen_session_key(inc_pub_transport, local_exponent, long_term_key, auth_arr):
-    '''
+    """
     generates a session key
 
     Arguments:
@@ -80,7 +80,7 @@ def gen_session_key(inc_pub_transport, local_exponent, long_term_key, auth_arr):
     returns:
     unique session key (only known to client/server), or 0 if using auth_arr,
     and data not authenticated
-    '''
+    """
     inc_pub_transport_bytes = aes.aes_decrypt(inc_pub_transport, long_term_key)
     print("generating session key - public transport: " + str(inc_pub_transport_bytes))
     inc_auth_arr = inc_pub_transport_bytes[:20]
@@ -92,11 +92,12 @@ def gen_session_key(inc_pub_transport, local_exponent, long_term_key, auth_arr):
     # reduce bytes to actual data
     inc_pub_transport_bytes = inc_pub_transport_bytes[20:]
 
-    inc_pub_transport = byteArrayToInt(inc_pub_transport_bytes)
+    inc_pub_transport = byte_array_to_int(inc_pub_transport_bytes)
 
     session_key = pow(inc_pub_transport, local_exponent, prime)
 
-    session_key = intToByteArray(session_key)[:16] #get first 16 bytes, so that key corresponds to a true aes key.
+    # get first 16 bytes, so that key corresponds to a true aes key.
+    session_key = int_to_byte_array(session_key)[:16]
 
     if debug:
         print("private session key is: " + str(session_key))
@@ -104,15 +105,15 @@ def gen_session_key(inc_pub_transport, local_exponent, long_term_key, auth_arr):
     return session_key
 
 def gen_nonce():
-    '''
+    """
     generates a nonce
 
     Returns: 16 byte nonce represented in byte array.
-    '''
-    return list(intToByteArray(random.getrandbits(128), 16))
+    """
+    return list(int_to_byte_array(random.getrandbits(128), 16))
 
-def gen_auth_msg(nonce_array = []):
-    '''
+def gen_auth_msg(nonce_array=[]):
+    """
     generates a tuple containing the 1st of 3 messages to be sent in the
     Authenticated Diffie Hellmen exchange
 
@@ -123,15 +124,15 @@ def gen_auth_msg(nonce_array = []):
 
     Returns: 20 bytes starting with 4: id of self - IP,
                       followed with 16: bytearray nonce
-    '''
+    """
     ip_array = [int(byte) for byte in connector.get_ip().split('.')]
     if len(nonce_array) == 0:
         nonce_array = [int(byte) for byte in gen_nonce()]
 
     return list(ip_array) + list(nonce_array)
 
-def intToByteArray(inputInt, forced_len=-1):
-    '''
+def int_to_byte_array(input_int, forced_len=-1):
+    """
     converts arbitrarily long integer into array of bytes
 
     Arguments:
@@ -140,12 +141,12 @@ def intToByteArray(inputInt, forced_len=-1):
 
     Returns:
     bytearray representative of inputInt
-    '''
+    """
     int_bytes = bytearray()
     idx = 0
-    while inputInt > 0:
-        int_bytes.append(inputInt % 256)
-        inputInt = inputInt // 256
+    while input_int > 0:
+        int_bytes.append(input_int % 256)
+        input_int //= 256
         idx += 1
         if forced_len > 0:
             if len(int_bytes) >= forced_len:
@@ -162,8 +163,8 @@ def intToByteArray(inputInt, forced_len=-1):
     return int_bytes
 
 
-def byteArrayToInt(int_bytes):
-    '''
+def byte_array_to_int(int_bytes):
+    """
     converts array of bytes into arbitrarily long integer
 
     Arguments:
@@ -171,50 +172,53 @@ def byteArrayToInt(int_bytes):
 
     Returns:
     arbitrarily long int
-    '''
+    """
     ret_int = 0
 
-    while(len(int_bytes) > 0):
+    while len(int_bytes) > 0:
         ret_int = ret_int*256 + int_bytes.pop()
 
     return ret_int
-
-
 
 
 def run_test():
     #Jorden Testing:
     long_term_key = "abcdefghijklmnop"
 
-
     print("*********************************************")
     print("Test Full DH With Authentication")
     #Alice does this
     client_init_msg = gen_auth_msg() # "Im Alice" - SEND THIS
-    client_init_msg[:4] = [1,1,1,1] #Override ID since just a basic test
+
+    #Override ID since just a basic test
+    client_init_msg[:4] = [1,1,1,1]
     print("1st Message Sent = " + str(client_init_msg))
 
     #Bob does this after receiving init_msg
     print("*********************************************")
     client_id = client_init_msg[:4]
     client_nonce = client_init_msg[4:]
-    print("Bob recieved id: " + str(client_id) + ", and nonce: " + str(client_nonce))
-    # then generates a resonse
+    print("Bob received id: " + str(client_id) + ", and nonce: " + str(client_nonce))
+    # then generates a response
     server_nonce = gen_nonce()
     print("Bob nonce: " + str(server_nonce))
     server_auth_msg = gen_auth_msg(client_nonce)
-    server_auth_msg[:4] = [2,2,2,2] #Override ID since just a basic test
+    # Override ID since just a basic test
+    server_auth_msg[:4] = [2,2,2,2]
     print("Bob auth msg: " + str(server_auth_msg))
-    server_encrypted_msg =  gen_public_transport(long_term_key, server_auth_msg)
+    server_encrypted_msg = gen_public_transport(long_term_key, server_auth_msg)
     server_public_transport = server_nonce + server_encrypted_msg[PUB_TRANSPORT_IDX] # Bob SENDS THIS
     print("2nd Message Sent - Bob public transport: " + str(server_public_transport))
 
     #Alice then does this with the incoming transport
     print("*********************************************")
     rcv_server_nonce = server_public_transport[:16]
+    assert(server_nonce == rcv_server_nonce)
     rcv_server_public_transport = server_public_transport[16:]
+    assert(server_public_transport[16:] == rcv_server_public_transport)
     client_auth_msg = gen_auth_msg(rcv_server_nonce)
-    client_auth_msg[:4] = [1,1,1,1] #Override ID since just a basic test
+    # Override ID since just a basic test
+    client_auth_msg[:4] = [1,1,1,1]
     client_encrypted_msg = gen_public_transport(long_term_key, client_auth_msg)
     client_public_transport = client_encrypted_msg[PUB_TRANSPORT_IDX] #Alice SENDS THIS
     print("3rd Message Sent - Alice public transport" + str(client_public_transport))
@@ -231,8 +235,8 @@ def run_test():
     # compare against Bob's ID and Alice's nonce:
     print("*********************************************")
     # BOB_ID = self.getIPFromTextBox - that's what alice actually cares about.
-    BOB_ID = [2,2,2,2] #Tempppp [int(byte) for byte in connector.get_ip().split('.')] #TEMP - not correct code to be used. - should be as line above.
-    expected_auth_msg = BOB_ID + client_init_msg[4:]
+    bob_id = [2,2,2,2] #Tempppp [int(byte) for byte in connector.get_ip().split('.')] #TEMP - not correct code to be used. - should be as line above.
+    expected_auth_msg = bob_id + client_init_msg[4:]
     print("Alice expects auth msg: " + str(expected_auth_msg))
     client_key = gen_session_key(rcv_server_public_transport, client_encrypted_msg[LOC_EXPONENT_IDX], long_term_key, expected_auth_msg)
     print("Client session key: " + str(client_key))
