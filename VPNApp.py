@@ -157,7 +157,7 @@ class VPNApp(Frame):
             encrypted = aes.aes_encrypt(to_send, self.session_key)
             encoded = bytes(encrypted)
             mac_val = mac.get_mac(to_send, MAC_KEY)
-            self.connector.send(encoded + mac_val[0] + mac_val[1])
+            self.connector.send(encoded + bytes(mac_val[0]) + bytes(mac_val[1]))
 
     def continue_callback(self):
         pass
