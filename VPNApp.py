@@ -176,13 +176,17 @@ class VPNApp(Frame):
         encrypted = self.connector.receive()
         if encrypted:
             print(encrypted)
-            msg_bytes = aes.aes_decrypt(encrypted, self.session_key)
+            msg_bytes = aes.aes_decrypt(encrypted[:-16], self.session_key)
             message = bytes(msg_bytes)
             # Not 100% on taking out the last block of message
-            verified_message = mac.check_mac(message[:-16], encrypted, MAC_KEY)
-            print(verified_message)
-            self.received_entry.delete(0, END)
-            self.received_entry.insert(0, verified_message)
+            mac_val = encrypted[-16:]
+            verified = mac.check_mac(message, mac_val, MAC_KEY)
+            if verified:
+                print(message)
+                self.received_entry.delete(0, END)
+                self.received_entry.insert(0, message)
+            else:
+                logging.getLogger().info("MAC check failure.")
 
     def disconnected(self):
         return not self.connector.is_alive()
