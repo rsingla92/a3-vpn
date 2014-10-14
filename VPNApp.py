@@ -175,10 +175,10 @@ class VPNApp(Frame):
             return
         encrypted = self.connector.receive()
         if encrypted:
-            print("Encrypted data, received: " + encrypted)
-            msg_bytes = aes.aes_decrypt(encrypted[:-16], self.session_key)
+            print("Encrypted data, received: " + str(encrypted))
+            msg_bytes = aes.aes_decrypt(encrypted[:-32], self.session_key)
             message = bytes(msg_bytes)
-            print("Decrypted message: " + message)
+            print("Decrypted message: " + str(message))
             # Not 100% on taking out the last block of message
             mac_val = encrypted[-16:]
             mac_iv = encrypted[-32:-16]

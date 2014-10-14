@@ -24,7 +24,7 @@ def check_mac(plaintext, mac_received, mac_key, mac_iv):
     """
     print (plaintext)
     mac_val = get_mac(plaintext, mac_key, mac_iv)
-    if mac_val != mac_received:
+    if mac_val[0] != mac_received:
         msg = "{} != {}".format(mac_val, mac_received)
         print(msg)
         return False
