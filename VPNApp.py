@@ -190,6 +190,7 @@ class VPNApp(Frame):
 def connect(host, port, shared_value, is_server):
     # TODO: get these from wherever they come from
     # need port and host params for Connector constructor
+    global MAC_KEY
     ctr = None
     if port:
         ctr = connector.Connector(is_server, host, port)
