@@ -282,10 +282,10 @@ def connect(host, port, shared_value, is_server):
 def task_loop(app, root):
     if app.state == CONNECTING:
         if app.connect_result.ready():
-             res = app.connect_result.get()
-             app.session_key = res[0]
-             app.connector = res[1] 
-             app.state = CONNECTED
+            res = app.connect_result.get()
+            app.session_key = res[0]
+            app.connector = res[1] 
+            app.state = CONNECTED
     elif app.state == CONNECTED:
         if app.disconnected():
             app.state = DISCONNECTED
