@@ -349,7 +349,8 @@ def run_test():
     
     return
   
-run_test()
+if __name__ == '__main__':
+    run_test()
 
 #arr = connector.get_ip().split('.')
 #arr2 = [int(byte) for byte in connector.get_ip().split('.')]

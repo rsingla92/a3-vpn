@@ -227,18 +227,19 @@ def connect(host, port, shared_value, is_server):
         client_dh_init_msg = dh_auth.gen_auth_msg()
         ctr.send(bytes(client_dh_init_msg))
         
-        rcv_server_dh_data = ctr.receive_wait()
-        rcv_server_nonce = rcv_server_dh_data[:16]
-        rcv_server_dh_data_encrypted = rcv_server_dh_data[16:]  
+        # Receive server authentication response
+        rcv_server_public_transport = ctr.receive_wait()
+        rcv_server_nonce = rcv_server_public_transport[:16]
+        rcv_server_dh_data_encrypted = rcv_server_public_transport[16:]  
         
-        # Send back response
+        # Send back client authentication response
         client_auth_msg = dh_auth.gen_auth_msg(rcv_server_nonce)
         client_dh_data_tup = dh_auth.gen_public_transport(long_term_key, client_auth_msg)
         client_public_transport = client_dh_data_tup[dh_auth.PUB_TRANSPORT_IDX]
         ctr.send(bytes(client_public_transport))
         
         # Authenticate received data from server
-        expect_rcv_server_id = self.ip_addr_entry.get()
+        expect_rcv_server_id = [int(byte) for byte in host.split('.')]
         expect_rcv_server_auth_msg = expect_rcv_server_id + client_dh_init_msg[4:]
         
         session_key = dh_auth.gen_session_key(rcv_server_dh_data_encrypted, client_dh_data_tup[dh_auth.LOC_EXPONENT_IDX], long_term_key, expect_rcv_server_auth_msg)
@@ -257,12 +258,12 @@ def connect(host, port, shared_value, is_server):
         server_public_transport = server_nonce + server_dh_data_tup[dh_auth.PUB_TRANSPORT_IDX]
         ctr.send(bytes(server_public_transport))
         
-        # Receive client authentication response
-        expect_rcv_client_auth_msg = rcv_client_id + server_nonce
+        # Receive client authentication response - client_public_transport is the same as rcv_client_dh_data_encrypted
+        rcv_client_public_transport = ctr.receive_wait()
         
         # Authenticate received data from client
-        client_public_transport = ctr.receive_wait()
-        session_key = dh_auth.gen_session_key(client_public_transport, server_dh_data_tup[dh_auth.LOC_EXPONENT_IDX], long_term_key, expect_rcv_client_auth_msg)
+        expect_rcv_client_auth_msg = rcv_client_id + server_nonce
+        session_key = dh_auth.gen_session_key(rcv_client_public_transport, server_dh_data_tup[dh_auth.LOC_EXPONENT_IDX], long_term_key, expect_rcv_client_auth_msg)
 
     # Enforce Perfect Forward Security by forgetting local exponent 
     client_dh_data_tup = (0,0)
