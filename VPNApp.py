@@ -6,6 +6,7 @@ import sys
 import hashlib
 
 import dh
+import dh_auth
 import aes
 import mac
 import connector
@@ -203,10 +204,11 @@ def connect(host, port, shared_value, is_server):
     md5_key.update(shared_val)
     long_term_key = md5_key.digest()
     
+    ctr.connect()
+    
     session_key = []
-    if not is_server:
+    '''if not is_server:
         #Client DH exchange            
-        ctr.connect()
         client_dh_tup = dh.gen_public_transport(True, long_term_key)
         ctr.send(bytes(client_dh_tup[dh.PUB_TRANSPORT_IDX]))
         server_dh_tup_encrypted = ctr.receive_wait()
@@ -214,15 +216,57 @@ def connect(host, port, shared_value, is_server):
         
     else:
         #Server DH exchange        
-        ctr.connect()
         server_dh_tup = dh.gen_public_transport(True, long_term_key)
         ctr.send(bytes(server_dh_tup[dh.PUB_TRANSPORT_IDX]))
         client_dh_tup_encrypted = ctr.receive_wait()
-        session_key = dh.gen_session_key(client_dh_tup_encrypted, server_dh_tup[dh.LOC_EXPONENT_IDX], True, long_term_key)
+        session_key = dh.gen_session_key(client_dh_tup_encrypted, server_dh_tup[dh.LOC_EXPONENT_IDX], True, long_term_key)'''
+    
+    if not is_server:
+        #Client Authenticated DH exchange
+        # Send initial DH trigger message
+        client_dh_init_msg = dh_auth.gen_auth_msg()
+        ctr.send(bytes(client_dh_init_msg))
+        
+        rcv_server_dh_data = ctr.receive_wait()
+        rcv_server_nonce = rcv_server_dh_data[:16]
+        rcv_server_dh_data_encrypted = rcv_server_dh_data[16:]  
+        
+        # Send back response
+        client_auth_msg = dh_auth.gen_auth_msg(rcv_server_nonce)
+        client_dh_data_tup = dh_auth.gen_public_transport(long_term_key, client_auth_msg)
+        client_public_transport = client_dh_data_tup[dh_auth.PUB_TRANSPORT_IDX]
+        ctr.send(bytes(client_public_transport))
+        
+        # Authenticate received data from server
+        expect_rcv_server_id = self.ip_addr_entry.get()
+        expect_rcv_server_auth_msg = expect_rcv_server_id + client_dh_init_msg[4:]
+        
+        session_key = dh_auth.gen_session_key(rcv_server_dh_data_encrypted, client_dh_data_tup[dh_auth.LOC_EXPONENT_IDX], long_term_key, expect_rcv_server_auth_msg)
+        
+    else:
+        #Server Authenticated DH exchange
+        # Receive initial DH trigger message 
+        rcv_client_dh_data = ctr.receive_wait()
+        rcv_client_id = rcv_client_dh_data[:4]
+        rcv_client_nonce = rcv_client_dh_data[4:]
+        
+        # send response
+        server_nonce = dh_auth.gen_nonce()
+        server_auth_msg = dh_auth.gen_auth_msg(rcv_client_nonce) 
+        server_dh_data_tup = dh_auth.gen_public_transport(long_term_key, server_auth_msg)
+        server_public_transport = server_nonce + server_dh_data_tup[dh_auth.PUB_TRANSPORT_IDX]
+        ctr.send(bytes(server_public_transport))
+        
+        # Receive client authentication response
+        expect_rcv_client_auth_msg = rcv_client_id + server_nonce
+        
+        # Authenticate received data from client
+        client_public_transport = ctr.receive_wait()
+        session_key = dh_auth.gen_session_key(client_public_transport, server_dh_data_tup[dh_auth.LOC_EXPONENT_IDX], long_term_key, expect_rcv_client_auth_msg)
 
     # Enforce Perfect Forward Security by forgetting local exponent 
-    client_dh_tup = (0,0)
-    server_dh_tup = (0,0)
+    client_dh_data_tup = (0,0)
+    server_dh_data_tup = (0,0)
 
     return (session_key, ctr)
 
