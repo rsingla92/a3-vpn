@@ -269,15 +269,9 @@ def connect(host, port, shared_value, is_server):
         expect_rcv_client_auth_msg = list(rcv_client_id) + list(server_nonce)
         session_key = dh_auth.gen_session_key(rcv_client_public_transport, server_dh_data_tup[dh_auth.LOC_EXPONENT_IDX], long_term_key, expect_rcv_client_auth_msg)
 
-<<<<<<< HEAD
     if session_key == 0:
         logging.getLogger().info('Failed to authenticate: session key invalid')
 
-=======
-        if session_key == 0:
-             logging.getLogger().info('Failed to authenticate: session key invalid')
-	
->>>>>>> e88121911de43f7691a0d6af82c738b71b369dbd
     # Enforce Perfect Forward Security by forgetting local exponent 
     client_dh_data_tup = (0,0)
     server_dh_data_tup = (0,0)
