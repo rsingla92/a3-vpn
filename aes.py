@@ -371,19 +371,20 @@ def aes_singleblock_inverse(dat, ekey):
         dat = bytesub_transform(shift_row(mix_columns(add_round_key(dat, ekey[(i+1)*16:(i+2)*16]), True), True), True)
     return create_stream(add_round_key(dat, ekey[:16]))
 
-def aes_encrypt(dat, key):
+def aes_encrypt(dat, key, iv = None):
     """Performs the AES encryption algorithm for the given data and key. Uses CBC for data that is longer than
     128-bits. If the last block of data is under 128 bits, the data will be padded with 0x80.
 
     Arguments:
     dat -- Data as a list of bytes or as a string.
     key -- Key as a list of bytes or as a string. Must contain 16 elements (128 bits).
+    iv -- List of 16 bytes that will act as the initialization vector
 
     Returns the ciphertext for the given data and key.
     """
     
-    if len(key) != 16:
-        raise TypeError('The key must be 16 bytes')
+    if len(key) != 16 or (iv and len(iv) != 16):
+        raise TypeError('The key/iv must be 16 bytes')
     key = [ord(x) if isinstance(x, str) else x for x in key]
     dat = [ord(x) if isinstance(x, str) else x for x in dat]
     ekey = form_extended_key(key)
@@ -391,8 +392,11 @@ def aes_encrypt(dat, key):
     dat = dat + [0x80]*padding
     # Generate the initialization vector
     ciphertext = []
-    for i in range(16):
-        ciphertext.append(random.randint(0, 255))
+    if not iv:
+        for i in range(16):
+            ciphertext.append(random.randint(0, 255))
+    else:
+        ciphertext += iv
     for i in range(0, len(dat), 16):
         block = [x ^ y for (x,y) in zip(dat[i:i+16], ciphertext[i:i+16])]
         ciphertext += aes_singleblock(block, ekey)

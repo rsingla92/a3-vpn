@@ -157,7 +157,7 @@ class VPNApp(Frame):
             encrypted = aes.aes_encrypt(to_send, self.session_key)
             encoded = bytes(encrypted)
             mac_val = mac.get_mac(to_send, MAC_KEY)
-            self.connector.send(encoded+mac_val)
+            self.connector.send(encoded + mac_val[0] + mac_val[1])
 
     def continue_callback(self):
         pass
@@ -180,9 +180,11 @@ class VPNApp(Frame):
             message = bytes(msg_bytes)
             # Not 100% on taking out the last block of message
             mac_val = encrypted[-16:]
-            verified = mac.check_mac(message, mac_val, MAC_KEY)
+            mac_iv = encrypted[-32:-16]
+            verified = mac.check_mac(message, mac_val, MAC_KEY, mac_iv)
+            print(message)
             if verified:
-                print(message)
+                #print(message)
                 self.received_entry.delete(0, END)
                 self.received_entry.insert(0, message)
             else:
