@@ -203,6 +203,11 @@ def connect(host, port, shared_value, is_server):
     shared_val = shared_value.encode('utf-8')
     md5_key.update(shared_val)
     long_term_key = md5_key.digest()
+	
+	md5_key = hashlib.md5()
+	md5_key.update(long_term_key)
+	MAC_KEY = md5_key.digest()
+	
     
     ctr.connect()
     
@@ -265,6 +270,9 @@ def connect(host, port, shared_value, is_server):
         expect_rcv_client_auth_msg = rcv_client_id + server_nonce
         session_key = dh_auth.gen_session_key(rcv_client_public_transport, server_dh_data_tup[dh_auth.LOC_EXPONENT_IDX], long_term_key, expect_rcv_client_auth_msg)
 
+	if session_key == 0:
+		logging.getLogger().info('Failed to authenticate: session key invalid')
+	
     # Enforce Perfect Forward Security by forgetting local exponent 
     client_dh_data_tup = (0,0)
     server_dh_data_tup = (0,0)
