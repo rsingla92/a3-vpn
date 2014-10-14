@@ -148,6 +148,9 @@ class VPNApp(Frame):
             self.logger.info('Already connected.')
 
     def send_callback(self):
+        if self.state != CONNECTED:
+            print("No connection established.")
+            return
         to_send = self.send_entry.get()
         if to_send and self.connector:
             encrypted = aes.aes_encrypt(to_send, self.session_key)
@@ -159,6 +162,8 @@ class VPNApp(Frame):
         pass
 
     def stop_callback(self):
+        self.connector.close()
+        self.state = DISCONNECTED
         pass
 
     def help_callback(self):
@@ -177,6 +182,9 @@ class VPNApp(Frame):
             print(verified_message)
             self.received_entry.delete(0, END)
             self.received_entry.insert(0, verified_message)
+
+    def disconnected(self):
+        return not self.connector.is_alive()
 
 def connect(host, port, shared_value, is_server):
     # TODO: get these from wherever they come from
@@ -226,7 +234,10 @@ def task_loop(app, root):
              app.connector = res[1] 
              app.state = CONNECTED
     elif app.state == CONNECTED:
-        app.receive()
+        if app.disconnected():
+            app.state = DISCONNECTED
+        else:
+            app.receive()
     root.after(500, task_loop, app, root)
 
 def main():

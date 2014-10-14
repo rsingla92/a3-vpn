@@ -162,7 +162,11 @@ class Receiver(threading.Thread):
 
     def run(self):
         while self.cont:
-            message = self.sock.recv(RECV_LENGTH)
+            message = None
+            try:
+                message = self.sock.recv(RECV_LENGTH)
+            except ConnectionError:
+                break
             if message:
                 self.message_queue.put(message)
                 self.log_received(message)
@@ -196,7 +200,10 @@ class Sender(threading.Thread):
         while self.cont:
             if not self.send_queue.empty():
                 message = self.send_queue.get()
-                self.sock.send(message)
+                try:
+                    self.sock.send(message)
+                except ConnectionError:
+                    break
                 self.log_sent(message)
         self.sock.close()
 
