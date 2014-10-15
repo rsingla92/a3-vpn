@@ -1,4 +1,4 @@
-"""This module contains an implementation of the Deffie-Hellman
+"""This module contains an implementation of the Ephemeral Deffie-Hellman
 Key Exchange Protocol.
 
 Functions:

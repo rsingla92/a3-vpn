@@ -358,8 +358,6 @@ def task_loop(app, root):
     root.after(500, task_loop, app, root)
 
 def main():
-    #dh.run_test()
-
     # Create a root window that will hold everything for us
     root = Tk()
     root.geometry("700x700+100+50")
