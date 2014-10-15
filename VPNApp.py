@@ -15,7 +15,7 @@ from multiprocessing.pool import ThreadPool
 
 # States of the connection
 DISCONNECTED, CONNECTING, CONNECTED = 0, 1, 2
-MAC_KEY = b'CHANGE THIS'
+MAC_KEY = b''
 
 pool = ThreadPool(processes=1)
 
