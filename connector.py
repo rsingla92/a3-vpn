@@ -38,7 +38,6 @@ class Connector(object):
             sock = _get_socket()
             clientsocket = sock
             if self.server:
-                logging.getLogger().info('Server is connecting to client: ' + sock)
                 clientsocket = _server_connect(sock, self.port)
             else:
                 logging.getLogger().info('Client is connecting to server: ' + self.host)
@@ -121,12 +120,12 @@ def get_ip():
 def _server_connect(sock, port):
     ip = socket.gethostbyname(socket.gethostname())
     print(ip)
-    logging.getLogger().info('Connecting to IP: ' + ip)
+    logging.getLogger().info('Binding socket to server IP: ' + ip)
     sock.bind((ip, port))
     logging.getLogger().info('Waiting for connection...')
     sock.listen(1)
     clientsocket, addr = sock.accept()
-    print('Connected to {}'.format(addr))
+    logging.getLogger().info('Server is connected to client: ' + addr)
     return clientsocket
 
 def _client_connect(sock, host, port):
