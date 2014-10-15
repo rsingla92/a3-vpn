@@ -176,6 +176,20 @@ class VPNApp(Frame):
         pass
 
     def help_callback(self):
+        top = Toplevel()
+        top.geometry("200x175+100+100")
+        top.title('Help | VPN App')
+
+        about_message =  "\n 1. Run two instances - one in client and one in server. \n"
+        about_message += "2. Enter the host/IP of the server to connect to.\n"
+        about_message += "3. Client MUST connect first.\n"
+        about_message += "4. Enjoy!\n"
+
+        msg = Message(top, text=about_message)
+        msg.pack()
+
+        button = Button(top, text="Dismiss", command=top.destroy)
+        button.pack()
         pass
 
     def receive(self):
