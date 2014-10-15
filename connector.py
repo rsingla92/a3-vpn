@@ -125,7 +125,7 @@ def _server_connect(sock, port):
     logging.getLogger().info('Waiting for connection...')
     sock.listen(1)
     clientsocket, addr = sock.accept()
-    logging.getLogger().info('Server is connected to client: ' + addr)
+    logging.getLogger().info('Server is connected to client: ' + str(addr[0]))
     return clientsocket
 
 def _client_connect(sock, host, port):
