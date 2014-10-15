@@ -74,7 +74,6 @@ class VPNApp(Frame):
         self.logger.addHandler(self.handler)
 
     def setup_buttons(self):
-        # TODO: Add the command parameter to all button constructor calls.
         self.mode_button = Button(self, text="Mode: Client (press to switch)", command = self.toggle_mode )
         self.mode_button.grid(row=6, column=2)
 
@@ -90,15 +89,10 @@ class VPNApp(Frame):
         continue_button = Button(self, text="Continue", command=self.continue_callback)
         continue_button.grid(row=9, column=2)
 
-        # self.quit_button = Button(self, text="Quit", command=self.quit_mode)
-        # self.quit_button.grid(row=11, column=4)
-
         self.help_button = Button(self, text="Help", command=self.help_callback)
         self.help_button.grid(row=11, column=0)
 
     def toggle_mode(self):
-        # TODO: Add some logging here
-        # TODO: Depending on the mode, disable certain text fields
         self.is_client = not self.is_client
 
         if self.is_client:
@@ -178,12 +172,12 @@ class VPNApp(Frame):
 
     def help_callback(self):
         top = Toplevel()
-        top.geometry("200x175+100+100")
+        top.geometry("300x275+100+100")
         top.title('Help | VPN App')
 
         about_message =  "\n 1. Run two instances - one in client and one in server. \n"
-        about_message += "2. Enter the host/IP of the server to connect to.\n"
-        about_message += "3. ???\n"
+        about_message += "2. Enter the host/IP of the server to connect to. (This can be found by having the server press connect first, and reading what the IP address of the server is)\n"
+        about_message += "3. ??? Profit.\n"
         about_message += "4. Enjoy!\n"
 
         msg = Message(top, text=about_message)
@@ -202,7 +196,6 @@ class VPNApp(Frame):
             msg_bytes = aes.aes_decrypt(encrypted[:-32], self.session_key)
             message = bytes(msg_bytes)
             self.logger.info('Decrypted message: ' + str(message))
-            # Not 100% on taking out the last block of message
             mac_val = encrypted[-16:]
             mac_iv = encrypted[-32:-16]
             verified = mac.check_mac(message, mac_val, MAC_KEY, mac_iv)
@@ -217,8 +210,6 @@ class VPNApp(Frame):
         return not self.connector.is_alive()
 
 def connect(host, port, shared_value, is_server):
-    # TODO: get these from wherever they come from
-    # need port and host params for Connector constructor
     global MAC_KEY
     ctr = None
     if port:
