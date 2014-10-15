@@ -12,7 +12,7 @@ import random
 import aes
 import connector
 
-debug = True
+debug = False
 
 PUB_TRANSPORT_IDX = 0
 LOC_EXPONENT_IDX = 1

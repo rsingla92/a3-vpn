@@ -38,8 +38,10 @@ class Connector(object):
             sock = _get_socket()
             clientsocket = sock
             if self.server:
+                logging.getLogger().info('Server is connecting to client')
                 clientsocket = _server_connect(sock, self.port)
             else:
+                logging.getLogger().info('Client is connecting to server')
                 _client_connect(sock, self.host, self.port)
             self.receive_thread = Receiver(clientsocket, self.host, self.port, self.receive_queue)
             self.send_thread = Sender(clientsocket, self.host, self.port, self.send_queue)
@@ -54,6 +56,7 @@ class Connector(object):
             ConnectionDeadException if connection has failed
         """
         # self.assert_alive() # could use decorator
+        logging.getLogger().info('Adding message to queue')
         self.send_queue.put(message)
 
     def receive(self):
@@ -67,6 +70,7 @@ class Connector(object):
         """
         # self.assert_alive() # could use decorator
         if not self.receive_queue.empty():
+            logging.getLogger().info('Receiving message')
             return self.receive_queue.get()
         else:
             return None
@@ -93,6 +97,7 @@ class Connector(object):
             return False
 
     def close(self):
+        logging.getLogger().info('Closing connection thread')
         if self.receive_thread != None:
             self.receive_thread.close()
         if self.send_thread != None:

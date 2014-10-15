@@ -277,7 +277,6 @@ def form_extended_key(original_key):
     Returns a list of bytes which is the extended key.
     """
     ekey = list(original_key)
-    #print("Key: ", ekey)
     i = 1
     for j in range(10):
         t = ekey[-4:]

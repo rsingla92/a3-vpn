@@ -64,7 +64,7 @@ class VPNApp(Frame):
         self.logLabel.grid(sticky=W, pady=5, padx=5)
 
         self.textArea = Text(self)
-        self.textArea.grid(row=1, column=0, columnspan=3, rowspan=5, padx=5, sticky=E+W+S+N)
+        self.textArea.grid(row=1, column=0, columnspan=3, rowspan=3, padx=1, sticky=E+W+S+N)
 
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.DEBUG)
@@ -104,13 +104,16 @@ class VPNApp(Frame):
             # Changing into the client
             self.mode_button.config(text="Mode: Client (press to switch)")
             self.ip_addr_entry.config(state='normal')
+            self.logger.info('Switched to Client mode')
         else:
             # Changing into the server
             self.mode_button.config(text="Mode: Server (press to switch)")
             self.ip_addr_entry.delete(0, END)
             self.ip_addr_entry.config(state='disabled')
+            self.logger.info('Switched to Server mode')
 
     def quit_mode(self):
+        self.logger.info('Quitting the VPN application')
         sys.exit(0) 
 
     def setup_entries(self):
@@ -141,6 +144,7 @@ class VPNApp(Frame):
 
     def connect_callback(self):
         if self.state == DISCONNECTED:
+            self.logger.info('Connecting')
             self.state = CONNECTING
             arg_tuple = (self.ip_addr_entry.get(), self.port_entry.get(), 
                 self.shared_value_entry.get(), not self.is_client)
@@ -150,13 +154,16 @@ class VPNApp(Frame):
 
     def send_callback(self):
         if self.state != CONNECTED:
-            print("No connection established.")
+            self.logger.info('No connection established')
             return
         to_send = self.send_entry.get()
         if to_send and self.connector:
+            self.logger.info('Encrypting message')
             encrypted = aes.aes_encrypt(to_send, self.session_key)
             encoded = bytes(encrypted)
+            self.logger.info('Calculating MAC')
             mac_val = mac.get_mac(to_send, MAC_KEY)
+            self.logger.info('Sending encrypted message')
             self.connector.send(encoded + bytes(mac_val[0]) + bytes(mac_val[1]))
 
     def continue_callback(self):
@@ -165,6 +172,7 @@ class VPNApp(Frame):
     def stop_callback(self):
         self.connector.close()
         self.state = DISCONNECTED
+        self.logger.info('Stopping connection')
         pass
 
     def help_callback(self):
@@ -175,19 +183,20 @@ class VPNApp(Frame):
             return
         encrypted = self.connector.receive()
         if encrypted:
-            print("Encrypted data, received: " + str(encrypted))
+            self.logger.info('Encrypted data, received: ' + str(encrypted))
             msg_bytes = aes.aes_decrypt(encrypted[:-32], self.session_key)
             message = bytes(msg_bytes)
-            print("Decrypted message: " + str(message))
+            self.logger.info('Decrypted message: ' + str(message))
             # Not 100% on taking out the last block of message
             mac_val = encrypted[-16:]
             mac_iv = encrypted[-32:-16]
             verified = mac.check_mac(message, mac_val, MAC_KEY, mac_iv)
             if verified:
+                self.logger.info('MAC check SUCCESS')
                 self.received_entry.delete(0, END)
                 self.received_entry.insert(0, message)
             else:
-                logging.getLogger().info("MAC check failure.")
+                self.logger.info.info("MAC check FAILURE")
 
     def disconnected(self):
         return not self.connector.is_alive()
@@ -217,51 +226,45 @@ def connect(host, port, shared_value, is_server):
     ctr.connect()
     
     session_key = []
-    '''if not is_server:
-        #Client DH exchange            
-        client_dh_tup = dh.gen_public_transport(True, long_term_key)
-        ctr.send(bytes(client_dh_tup[dh.PUB_TRANSPORT_IDX]))
-        server_dh_tup_encrypted = ctr.receive_wait()
-        session_key = dh.gen_session_key(server_dh_tup_encrypted, client_dh_tup[dh.LOC_EXPONENT_IDX], True, long_term_key)
-        
-    else:
-        #Server DH exchange        
-        server_dh_tup = dh.gen_public_transport(True, long_term_key)
-        ctr.send(bytes(server_dh_tup[dh.PUB_TRANSPORT_IDX]))
-        client_dh_tup_encrypted = ctr.receive_wait()
-        session_key = dh.gen_session_key(client_dh_tup_encrypted, server_dh_tup[dh.LOC_EXPONENT_IDX], True, long_term_key)'''
     
     if not is_server:
         #Client Authenticated DH exchange
         # Send initial DH trigger message
+        self.logger.info('Sending initial authentication message')
         client_dh_init_msg = dh_auth.gen_auth_msg()
         ctr.send(bytes(client_dh_init_msg))
         
         # Receive server authentication response
+        self.logger.info('Waiting for server authentication response')
         rcv_server_public_transport = ctr.receive_wait()
         rcv_server_nonce = rcv_server_public_transport[:16]
         rcv_server_dh_data_encrypted = rcv_server_public_transport[16:]  
         
         # Send back client authentication response
+        self.logger.info('Sending client authentication response')
         client_auth_msg = dh_auth.gen_auth_msg(rcv_server_nonce)
         client_dh_data_tup = dh_auth.gen_public_transport(long_term_key, client_auth_msg)
         client_public_transport = client_dh_data_tup[dh_auth.PUB_TRANSPORT_IDX]
         ctr.send(bytes(client_public_transport))
         
         # Authenticate received data from server
+        self.logger.info('Authenticating data received from server')
         expect_rcv_server_id = [int(byte) for byte in host.split('.')]
         expect_rcv_server_auth_msg = expect_rcv_server_id + client_dh_init_msg[4:]
         
+        self.logger.info('Generating session key')
         session_key = dh_auth.gen_session_key(rcv_server_dh_data_encrypted, client_dh_data_tup[dh_auth.LOC_EXPONENT_IDX], long_term_key, expect_rcv_server_auth_msg)
         
     else:
         #Server Authenticated DH exchange
-        # Receive initial DH trigger message 
+        # Receive initial DH trigger message
+        self.logger.info('Waiting for initial authentication message')
         rcv_client_dh_data = ctr.receive_wait()
         rcv_client_id = rcv_client_dh_data[:4]
         rcv_client_nonce = rcv_client_dh_data[4:]
         
         # send response
+        self.logger.info('Sending server authentication response')
         server_nonce = dh_auth.gen_nonce()
         server_auth_msg = dh_auth.gen_auth_msg(rcv_client_nonce) 
         server_dh_data_tup = dh_auth.gen_public_transport(long_term_key, server_auth_msg)
@@ -269,14 +272,16 @@ def connect(host, port, shared_value, is_server):
         ctr.send(bytes(server_public_transport))
         
         # Receive client authentication response - client_public_transport is the same as rcv_client_dh_data_encrypted
+        self.logger.info('Waiting for client authentication response')
         rcv_client_public_transport = ctr.receive_wait()
         
         # Authenticate received data from client
+        self.logger.info('Authenticating client response')
         expect_rcv_client_auth_msg = list(rcv_client_id) + list(server_nonce)
         session_key = dh_auth.gen_session_key(rcv_client_public_transport, server_dh_data_tup[dh_auth.LOC_EXPONENT_IDX], long_term_key, expect_rcv_client_auth_msg)
 
     if session_key == 0:
-        logging.getLogger().info('Failed to authenticate: session key invalid')
+        self.logger.info('Failed to authenticate: session key invalid')
 
     # Enforce Perfect Forward Security by forgetting local exponent 
     client_dh_data_tup = (0,0)
@@ -303,7 +308,7 @@ def main():
 
     # Create a root window that will hold everything for us
     root = Tk()
-    root.geometry("500x500+300+300")
+    root.geometry("700x700+100+50")
 
     # Create a calibration application using that root
     app = VPNApp(root)
