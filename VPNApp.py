@@ -5,7 +5,6 @@ import struct
 import sys
 import hashlib
 
-import dh
 import dh_auth
 import aes
 import mac
