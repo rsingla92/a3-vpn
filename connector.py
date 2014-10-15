@@ -38,10 +38,10 @@ class Connector(object):
             sock = _get_socket()
             clientsocket = sock
             if self.server:
-                logging.getLogger().info('Server is connecting to client')
+                logging.getLogger().info('Server is connecting to client: ' + sock)
                 clientsocket = _server_connect(sock, self.port)
             else:
-                logging.getLogger().info('Client is connecting to server')
+                logging.getLogger().info('Client is connecting to server: ' + self.host)
                 _client_connect(sock, self.host, self.port)
             self.receive_thread = Receiver(clientsocket, self.host, self.port, self.receive_queue)
             self.send_thread = Sender(clientsocket, self.host, self.port, self.send_queue)
@@ -121,6 +121,7 @@ def get_ip():
 def _server_connect(sock, port):
     ip = socket.gethostbyname(socket.gethostname())
     print(ip)
+    logging.getLogger().info('Connecting to IP: ' + ip)
     sock.bind((ip, port))
     logging.getLogger().info('Waiting for connection...')
     sock.listen(1)
