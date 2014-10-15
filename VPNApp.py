@@ -243,41 +243,41 @@ def connect(host, port, shared_value, is_server):
     if not is_server:
         #Client Authenticated DH exchange
         # Send initial DH trigger message
-        self.logger.info('Sending initial authentication message')
+        logging.getLogger().info('Sending initial authentication message')
         client_dh_init_msg = dh_auth.gen_auth_msg()
         ctr.send(bytes(client_dh_init_msg))
         
         # Receive server authentication response
-        self.logger.info('Waiting for server authentication response')
+        logging.getLogger().info('Waiting for server authentication response')
         rcv_server_public_transport = ctr.receive_wait()
         rcv_server_nonce = rcv_server_public_transport[:16]
         rcv_server_dh_data_encrypted = rcv_server_public_transport[16:]  
         
         # Send back client authentication response
-        self.logger.info('Sending client authentication response')
+        logging.getLogger().info('Sending client authentication response')
         client_auth_msg = dh_auth.gen_auth_msg(rcv_server_nonce)
         client_dh_data_tup = dh_auth.gen_public_transport(long_term_key, client_auth_msg)
         client_public_transport = client_dh_data_tup[dh_auth.PUB_TRANSPORT_IDX]
         ctr.send(bytes(client_public_transport))
         
         # Authenticate received data from server
-        self.logger.info('Authenticating data received from server')
+        logging.getLogger().info('Authenticating data received from server')
         expect_rcv_server_id = [int(byte) for byte in host.split('.')]
         expect_rcv_server_auth_msg = expect_rcv_server_id + client_dh_init_msg[4:]
         
-        self.logger.info('Generating session key')
+        logging.getLogger().info('Generating session key')
         session_key = dh_auth.gen_session_key(rcv_server_dh_data_encrypted, client_dh_data_tup[dh_auth.LOC_EXPONENT_IDX], long_term_key, expect_rcv_server_auth_msg)
         
     else:
         #Server Authenticated DH exchange
         # Receive initial DH trigger message
-        self.logger.info('Waiting for initial authentication message')
+        logging.getLogger().info('Waiting for initial authentication message')
         rcv_client_dh_data = ctr.receive_wait()
         rcv_client_id = rcv_client_dh_data[:4]
         rcv_client_nonce = rcv_client_dh_data[4:]
         
         # send response
-        self.logger.info('Sending server authentication response')
+        logging.getLogger().info('Sending server authentication response')
         server_nonce = dh_auth.gen_nonce()
         server_auth_msg = dh_auth.gen_auth_msg(rcv_client_nonce) 
         server_dh_data_tup = dh_auth.gen_public_transport(long_term_key, server_auth_msg)
@@ -285,16 +285,16 @@ def connect(host, port, shared_value, is_server):
         ctr.send(bytes(server_public_transport))
         
         # Receive client authentication response - client_public_transport is the same as rcv_client_dh_data_encrypted
-        self.logger.info('Waiting for client authentication response')
+        logging.getLogger().info('Waiting for client authentication response')
         rcv_client_public_transport = ctr.receive_wait()
         
         # Authenticate received data from client
-        self.logger.info('Authenticating client response')
+        logging.getLogger().info('Authenticating client response')
         expect_rcv_client_auth_msg = list(rcv_client_id) + list(server_nonce)
         session_key = dh_auth.gen_session_key(rcv_client_public_transport, server_dh_data_tup[dh_auth.LOC_EXPONENT_IDX], long_term_key, expect_rcv_client_auth_msg)
 
     if session_key == 0:
-        self.logger.info('Failed to authenticate: session key invalid')
+        logging.getLogger().info('Failed to authenticate: session key invalid')
 
     # Enforce Perfect Forward Security by forgetting local exponent 
     client_dh_data_tup = (0,0)
