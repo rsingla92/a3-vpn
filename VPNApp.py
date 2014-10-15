@@ -232,7 +232,7 @@ class VPNApp(Frame):
             return
         encrypted = self.connector.receive()
         if encrypted:
-            self.logger.info('Encrypted data, received: ' + str(encrypted))
+            self.logger.info('Encrypted data, received: ' + connector.bytestring_as_hex_string(encrypted))
             msg_bytes = aes.aes_decrypt(encrypted[:-32], self.session_key)
             message = bytes(msg_bytes)
             self.logger.info('Decrypted message: ' + str(message))
@@ -332,8 +332,8 @@ def connect(host, port, shared_value, is_server):
 
     if session_key == 0:
         logging.getLogger().info('Failed to authenticate: session key invalid')
-
-    logging.getLogger().info('Authenticated with session key: ' + connector.bytestring_as_hex_string(session_key))
+    else:
+        logging.getLogger().info('Authenticated with session key: ' + connector.bytestring_as_hex_string(session_key))
     # Enforce Perfect Forward Security by forgetting local exponent 
     client_dh_data_tup = (0,0)
     server_dh_data_tup = (0,0)
