@@ -163,7 +163,7 @@ class Receiver(threading.Thread):
 
     def log_received(self, message):
         logger = logging.getLogger()
-        to_log = "Received: {}".format(message)
+        to_log = "Received: {}".format(bytestring_as_hex_string(message))
         logger.info(to_log)
 
     def run(self):
@@ -199,7 +199,7 @@ class Sender(threading.Thread):
 
     def log_sent(self, message):
         logger = logging.getLogger()
-        to_log = "Sent: {}".format(message)
+        to_log = "Sent: {}".format(bytestring_as_hex_string(message))
         logger.info(to_log)
 
     def run(self):
@@ -215,3 +215,13 @@ class Sender(threading.Thread):
 
     def close(self):
         self.cont = False
+
+def bytestring_as_hex_string(message):
+    """
+    Returns the bytestring (or byte list), message, in an easily readable format where
+    the bytes are printed as hex values and separated by spaces.
+    """
+    hex_str = ""
+    for byte in message:
+        hex_str += "{} ".format(hex(byte))
+    return hex_str
