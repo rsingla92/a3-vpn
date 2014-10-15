@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+"""
+   This module contains the overaching GUI and application for the VPN assignment.
+
+   The VPNApp class is defined here, as well as the neccesary callbacks to tie into
+   underlying modules such as Diffie-Hellman key exchange and authentication, AES encryption,
+   MAC calculation and check, and sending/receiving of data.
+
+   It also contains a WidgetLogger, used to direct log messages to the text window.
+   
+"""
+
 from tkinter import *
 
 import tkinter.scrolledtext as tkst
@@ -56,6 +67,10 @@ class VPNApp(Frame):
         self.setup_entries()
 
     def setup_grid(self):
+        """
+        Initializes the grid for the GUI, sets up the log window with a scrollbar
+        and a handler for the logging function.
+        """
         self.columnconfigure(1, weight=1)
         self.columnconfigure(3, pad=7)
         self.rowconfigure(3, weight=1)
@@ -74,6 +89,10 @@ class VPNApp(Frame):
         self.logger.addHandler(self.handler)
 
     def setup_buttons(self):
+        """
+        Using the Tkinter grid manager, create labels and buttons for each VPNApp.
+        Button commands are callbacks into other modules.
+        """
         self.mode_button = Button(self, text="Mode: Client (press to switch)", command = self.toggle_mode )
         self.mode_button.grid(row=6, column=2)
 
@@ -93,6 +112,9 @@ class VPNApp(Frame):
         self.help_button.grid(row=11, column=0)
 
     def toggle_mode(self):
+        """
+        Used to switch between client and server mode. 
+        """
         self.is_client = not self.is_client
 
         if self.is_client:
@@ -112,6 +134,9 @@ class VPNApp(Frame):
         sys.exit(0) 
 
     def setup_entries(self):
+        """
+        Place text entries into the proper spot on the GUI grid.
+        """
         self.ip_addr_label = Label(self, text="IP Addr")
         self.ip_addr_label.grid(row=6, column=0)
         self.ip_addr_entry = Entry(self)
@@ -138,6 +163,9 @@ class VPNApp(Frame):
         self.received_entry.grid(row=10, column=1)
 
     def connect_callback(self):
+        """
+        Begin a connection with the specified host/port if needed.
+        """
         if self.state == DISCONNECTED:
             self.logger.info('Connecting')
             self.state = CONNECTING
@@ -148,6 +176,9 @@ class VPNApp(Frame):
             self.logger.info('Already connected.')
 
     def send_callback(self):
+        """
+        Encrypt and send the data to be sent
+        """
         if self.state != CONNECTED:
             self.logger.info('No connection established')
             return
@@ -165,12 +196,18 @@ class VPNApp(Frame):
         pass
 
     def stop_callback(self):
+        """
+        Disconnect and clean up
+        """
         self.connector.close()
         self.state = DISCONNECTED
         self.logger.info('Stopping connection')
         pass
 
     def help_callback(self):
+        """
+        Make a pop-up window for helping the user.
+        """
         top = Toplevel()
         top.geometry("300x275+100+100")
         top.title('Help | VPN App')
@@ -188,6 +225,9 @@ class VPNApp(Frame):
         pass
 
     def receive(self):
+        """
+        Receive and decrypt data and populate the received entry field.
+        """
         if self.connector is None:
             return
         encrypted = self.connector.receive()
@@ -210,6 +250,10 @@ class VPNApp(Frame):
         return not self.connector.is_alive()
 
 def connect(host, port, shared_value, is_server):
+    """
+    Connect to the host:port with the Diffie-Hellman exchange, making sure to
+    authenticate the connection.
+    """
     global MAC_KEY
     ctr = None
     if port:
@@ -297,6 +341,9 @@ def connect(host, port, shared_value, is_server):
     return (session_key, ctr)
 
 def task_loop(app, root):
+    """
+    Main application loop that runs every 500ms.
+    """
     if app.state == CONNECTING:
         if app.connect_result.ready():
             res = app.connect_result.get()
