@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 from tkinter import *
+
+import tkinter.scrolledtext as tkst
 import logging
 import struct
 import sys
@@ -62,7 +64,7 @@ class VPNApp(Frame):
         self.logLabel = Label(self, text="Log Window")
         self.logLabel.grid(sticky=W, pady=5, padx=5)
 
-        self.textArea = Text(self)
+        self.textArea = tkst.ScrolledText(self)
         self.textArea.grid(row=1, column=0, columnspan=3, rowspan=3, padx=1, sticky=E+W+S+N)
 
         self.logger = logging.getLogger()
@@ -181,7 +183,7 @@ class VPNApp(Frame):
 
         about_message =  "\n 1. Run two instances - one in client and one in server. \n"
         about_message += "2. Enter the host/IP of the server to connect to.\n"
-        about_message += "3. Client MUST connect first.\n"
+        about_message += "3. ???\n"
         about_message += "4. Enjoy!\n"
 
         msg = Message(top, text=about_message)
